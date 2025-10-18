@@ -102,6 +102,9 @@ const makeLinenum = (() => {
         const textLines = text.split(/\r?\n|\r/);
         for (let i = 0; i < textLines.length - 1; i++) {
             const textLine = textLines[i];
+            if (textLine.length === 0) {
+                continue;
+            }
             currentLine.children.push(textLine);
             lines.push(makeLine(currentLine, wrapperStack, options));
             // Reset currentLine
@@ -134,19 +137,23 @@ const makeLinenum = (() => {
             }
         }
         traverse(element, lines, currentLine, wrapperStack, options);
-        const wrapperElement = makeWrapper(wrapperStack[wrapperStack.length - 1], options);
+        const wrappedChildren = [];
         if (lines.length === wrapperStartLine) {
-            wrapperElement.append(...currentLine.children.slice(wrapperStartChildIndex));
+            wrappedChildren.push(...currentLine.children.slice(wrapperStartChildIndex));
         }
         else if (lines.length > wrapperStartLine) {
             // The earlier lines have already been wrapped, so we only need to wrap from the start of the current line
-            wrapperElement.append(...currentLine.children);
+            wrappedChildren.push(...currentLine.children);
         }
         else {
             throw new Error(`line count decreased after traversing element: ${element}`);
         }
-        currentLine.children.length = wrapperStartChildIndex;
-        currentLine.children.push(wrapperElement);
+        if (wrappedChildren.length > 0) {
+            const wrapperElement = makeWrapper(wrapperStack[wrapperStack.length - 1], options);
+            wrapperElement.append(...wrappedChildren);
+            currentLine.children.length -= wrappedChildren.length;
+            currentLine.children.push(wrapperElement);
+        }
         wrapperStack.pop();
     }
     function traverse(container, lines, currentLine, wrapperStack, options) {
@@ -204,7 +211,9 @@ const makeLinenum = (() => {
             num: (_a = readStartNumAttribute(container, options)) !== null && _a !== void 0 ? _a : options.defaultStartNum,
         };
         traverse(container, lines, currentLine, lineWrapperStack, options);
-        lines.push(makeLine(currentLine, lineWrapperStack, options));
+        if (currentLine.children.length > 0) {
+            lines.push(makeLine(currentLine, lineWrapperStack, options));
+        }
         return lines;
     }
     function convertContainer(container, options) {
