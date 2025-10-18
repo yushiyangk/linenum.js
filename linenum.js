@@ -102,9 +102,6 @@ const makeLinenum = (() => {
         const textLines = text.split(/\r?\n|\r/);
         for (let i = 0; i < textLines.length - 1; i++) {
             const textLine = textLines[i];
-            if (textLine.length === 0) {
-                continue;
-            }
             currentLine.children.push(textLine);
             lines.push(makeLine(currentLine, wrapperStack, options));
             // Reset currentLine
@@ -114,7 +111,10 @@ const makeLinenum = (() => {
         }
         // Do not make a new line for the last textLine, which may yet be incomplete
         if (textLines.length > 0) {
-            currentLine.children.push(textLines[textLines.length - 1]);
+            const textLinePart = textLines[textLines.length - 1];
+            if (textLinePart.length > 0) {
+                currentLine.children.push(textLines[textLines.length - 1]);
+            }
         }
         return;
     }
