@@ -1,10 +1,58 @@
 "use strict";
 // linenum.js
-// version 0.1
+// version 0.1.1
 // Yu Shiyang <yu.shiyang@gnayihs.uy>
 // Browser compatibility: ES6
 // This includes support for all current browsers with any significant market share (at least 0.1%)
 const makeLinenum = (() => {
+    const BASE_STYLE = (`:root {
+	--ln-colour: slategrey;
+	--ln-background-colour: ghostwhite;
+	--ln-margin-before: 0;
+	--ln-margin-after: 0;
+	--ln-margin-vertical: 0;
+	--ln-padding-before: 0;
+	--ln-padding-after: 0;
+	--ln-padding-vertical: 0;
+
+	--ln-num-spacing: 1em;
+}
+
+.ln-container {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-auto-flow: row;
+	grid-gap: 0 var(--ln-num-spacing) ;
+	justify-items: stretch;
+	align-items: stretch;
+}
+
+.ln-num {
+	display: block;
+
+	margin-left: var(--ln-margin-before);
+	margin-inline-start: var(--ln-margin-before);
+	margin-right: var(--ln-margin-after);
+	margin-inline-end: var(--ln-margin-after);
+	margin-top: var(--ln-margin-vertical);
+	margin-bottom: var(--ln-margin-vertical);
+	padding-left: var(--ln-padding-before);
+	padding-inline-start: var(--ln-padding-before);
+	padding-right: var(--ln-padding-after);
+	padding-inline-end: var(--ln-padding-after);
+	padding-top: var(--ln-padding-vertical);
+	padding-bottom: var(--ln-padding-vertical);
+
+	color: var(--ln-colour);
+	background-color: var(--ln-background-colour);
+
+	user-select: none;
+}
+
+.ln-line {
+	display: block;
+}
+`);
     const defaultMakeLinenumOptions = {
         defaultStartNum: 1,
         containerClassName: "ln-container",
@@ -237,9 +285,12 @@ const makeLinenum = (() => {
         }
         container.append(...elements);
     }
-    return (preformattedElements, options) => {
+    return (preformattedElements, stylesheetParent, options) => {
         const reifiedOptions = reifyOptions(options, defaultMakeLinenumOptions);
         validateMakeLinenumOptions(reifiedOptions);
+        if (stylesheetParent === undefined) {
+            stylesheetParent = document.head;
+        }
         for (const container of preformattedElements) {
             const lines = makeLines(container, reifiedOptions);
             if (lines === null) {
@@ -248,6 +299,12 @@ const makeLinenum = (() => {
             }
             convertContainer(container, reifiedOptions);
             populateContainer(container, lines, reifiedOptions);
+        }
+        if (stylesheetParent !== null) {
+            const style = document.createElement("style");
+            style.setAttribute("type", "text/css");
+            style.append(BASE_STYLE);
+            stylesheetParent.prepend(style);
         }
     };
 })();
