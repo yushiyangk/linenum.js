@@ -21,7 +21,7 @@ const makeLinenum = (() => {
 .ln-container {
 	display: grid;
 	grid-template-columns: auto 1fr;
-	grid-auto-flow: row;
+	grid-auto-flow: column;
 	grid-gap: 0 var(--ln-num-spacing) ;
 	justify-items: stretch;
 	align-items: stretch;
@@ -29,6 +29,8 @@ const makeLinenum = (() => {
 
 .ln-num {
 	display: block;
+
+	grid-column: 1;
 
 	margin-left: var(--ln-margin-before);
 	margin-inline-start: var(--ln-margin-before);
@@ -51,6 +53,8 @@ const makeLinenum = (() => {
 
 .ln-line {
 	display: block;
+
+	grid-column: 2;
 }
 `);
     const defaultMakeLinenumOptions = {
@@ -271,7 +275,8 @@ const makeLinenum = (() => {
     }
     function populateContainer(container, lines, options) {
         container.innerHTML = "";
-        const elements = [];
+        const lineElements = [];
+        const numElements = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const numElement = document.createElement("span");
@@ -281,9 +286,10 @@ const makeLinenum = (() => {
             if (line.showNum) {
                 numElement.append(line.num.toString());
             }
-            elements.push(numElement, line.element);
+            lineElements.push(line.element);
+            numElements.push(numElement);
         }
-        container.append(...elements);
+        container.append(...numElements, ...lineElements);
     }
     return (preformattedElements, stylesheetParent, options) => {
         const reifiedOptions = reifyOptions(options, defaultMakeLinenumOptions);
