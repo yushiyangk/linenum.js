@@ -1,6 +1,6 @@
 "use strict";
 // linenum.js
-// version 0.1.1
+// version 0.2
 // Yu Shiyang <yu.shiyang@gnayihs.uy>
 // Browser compatibility: ES6
 // This includes support for all current browsers with any significant market share (at least 0.1%)
