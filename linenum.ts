@@ -380,7 +380,7 @@ const makeLinenum = (() => {
 	return (
 		preformattedElements: Element[],
 		stylesheetParent?: Element | null,
-		options?: MakeLinenumOptions,
+		options?: Partial<MakeLinenumOptions>,
 	) => {
 		const reifiedOptions = reifyOptions(options, defaultMakeLinenumOptions);
 		validateMakeLinenumOptions(reifiedOptions);
