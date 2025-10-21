@@ -9,7 +9,7 @@
 
 const makeLinenum = (() => {
 	const BASE_STYLE = (
-`:root {
+		`:root {
 	--ln-colour: slategrey;
 	--ln-background-colour: ghostwhite;
 	--ln-margin-before: 0;
@@ -31,7 +31,11 @@ const makeLinenum = (() => {
 	align-items: stretch;
 }
 
-.ln-num {
+.ln-wrapper {
+	display: contents;
+}
+.ln-wrapper::before {
+	content: counter(ln-count);
 	display: block;
 
 	margin-left: var(--ln-margin-before);
@@ -49,12 +53,15 @@ const makeLinenum = (() => {
 
 	color: var(--ln-colour);
 	background-color: var(--ln-background-colour);
-
-	user-select: none;
+}
+.ln-wrapper.ln-hide::before {
+	content: '';
 }
 
 .ln-line {
 	display: block;
+
+	counter-increment: ln-count;
 }
 `
 	);
@@ -64,7 +71,8 @@ const makeLinenum = (() => {
 		defaultStartNum: number,
 		containerClassName: string | null,
 		lineClassName: string | null,
-		lineNumClassName: string | null,
+		lineWrapperClassName: string | null,
+		hideNumClassName: string,
 		startNumDataAttribute: string | null,
 		skipDataAttribute: string | null,  // this data attribute prevents the current line from being counted, and the line number will be incremented by the value of this attribute
 	}
@@ -72,7 +80,8 @@ const makeLinenum = (() => {
 		defaultStartNum: 1,
 		containerClassName: "ln-container",
 		lineClassName: "ln-line",
-		lineNumClassName: "ln-num",
+		lineWrapperClassName: "ln-wrapper",
+		hideNumClassName: "ln-hide",
 		startNumDataAttribute: "data-ln-start",
 		skipDataAttribute: "data-ln-skip",
 	}
@@ -150,12 +159,14 @@ const makeLinenum = (() => {
 	interface Line {
 		element: HTMLSpanElement,
 		num: number,
+		resetNum: number | null,
 		showNum: boolean,
 	}
 
 	interface CurrentLine {
 		children: (Node | string)[],
 		num: number,
+		resetNum: number | null,
 		showNum: boolean,
 	}
 
@@ -191,6 +202,7 @@ const makeLinenum = (() => {
 		return {
 			element: span,
 			num: currentLine.num,
+			resetNum: currentLine.resetNum,
 			showNum: currentLine.showNum,
 		};
 	}
@@ -217,6 +229,7 @@ const makeLinenum = (() => {
 			// Reset currentLine
 			currentLine.children.length = 0;
 			currentLine.num += 1;
+			currentLine.resetNum = null;
 			currentLine.showNum = true;
 		}
 		// Do not make a new line for the last textLine, which may yet be incomplete
@@ -246,12 +259,17 @@ const makeLinenum = (() => {
 		if (skip !== null) {
 			currentLine.num += skip - 1;
 			currentLine.showNum = false;
-			if (startNum !== null) {
+			if (startNum === null) {
+				currentLine.num += skip - 1;
+				currentLine.resetNum = currentLine.num + 1;
+			} else {
 				currentLine.num = startNum - 1;
+				currentLine.resetNum = startNum - 1;
 			}
 		} else {
 			if (startNum !== null) {
 				currentLine.num = startNum;
+				currentLine.resetNum = startNum;
 			}
 		}
 
@@ -334,12 +352,15 @@ const makeLinenum = (() => {
 			return null;
 		}
 
+
 		const lines: Line[] = [];
 		const lineWrapperStack: Wrapper[] = [];
+		const initialNum = readStartNumAttribute(container, options) ?? options.defaultStartNum;
 		const currentLine: CurrentLine = {
 			children: [],
 			showNum: true,
-			num: readStartNumAttribute(container, options) ?? options.defaultStartNum,
+			resetNum: initialNum,
+			num: initialNum,
 		};
 
 		traverse(container, lines, currentLine, lineWrapperStack, options);
@@ -350,36 +371,53 @@ const makeLinenum = (() => {
 		return lines;
 	}
 
-	function convertContainer(container: Element, options: MakeLinenumOptions): void {
+	function convertContainer(container: HTMLElement, startNum: number | null, options: MakeLinenumOptions): void {
 		if (options.containerClassName !== null) {
 			container.classList.add(options.containerClassName);
 		}
 	}
 
-	function populateContainer(container: Element, lines: Line[], options: MakeLinenumOptions): void {
+	function populateContainer(container: HTMLElement, lines: Line[], options: MakeLinenumOptions): void {
 		container.innerHTML = "";
 
-		const elements = [];
+		const elements: HTMLSpanElement[] = [];
 
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
 
-			const numElement = document.createElement("span");
-			if (options.lineNumClassName !== null) {
-				numElement.classList.add(options.lineNumClassName);
-			}
-			if (line.showNum) {
-				numElement.append(line.num.toString());
+			const br = document.createElement("br");
+			line.element.append(br);
+
+			if (line.resetNum !== null) {
+				if (elements.length === 0) {
+					container.style.counterReset = `ln-count ${line.resetNum}`;
+				} else {
+					const prevLine = elements[elements.length - 1].querySelector("span.ln-line") as HTMLSpanElement | null;
+					if (prevLine === null) {
+						console.error(`linenum.js:populateContainer: previous line element not found when setting line number to ${line.resetNum}`);
+					} else {
+						prevLine.style.counterSet = `ln-count ${line.resetNum}`;
+					}
+				}
 			}
 
-			elements.push(numElement, line.element)
+			const lineWrapper = document.createElement("span");
+			if (options.lineWrapperClassName !== null) {
+				lineWrapper.classList.add(options.lineWrapperClassName);
+			}
+			if (!line.showNum) {
+				lineWrapper.classList.add(options.hideNumClassName);
+			}
+			lineWrapper.append(line.element);
+
+			elements.push(lineWrapper);
 		}
 
 		container.append(...elements);
 	}
 
 	return (
-		preformattedElements: Element[],
+		preformattedElements: HTMLElement[],
 		stylesheetParent?: Element | null,
 		options?: MakeLinenumOptions,
 	) => {
@@ -397,7 +435,11 @@ const makeLinenum = (() => {
 				continue;
 			}
 
-			convertContainer(container, reifiedOptions);
+			convertContainer(
+				container,
+				lines.length > 0 ? lines[0].resetNum : null,
+				reifiedOptions,
+			);
 			populateContainer(container, lines, reifiedOptions);
 		}
 

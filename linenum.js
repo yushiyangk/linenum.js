@@ -27,7 +27,11 @@ const makeLinenum = (() => {
 	align-items: stretch;
 }
 
-.ln-num {
+.ln-wrapper {
+	display: contents;
+}
+.ln-wrapper::before {
+	content: counter(ln-count);
 	display: block;
 
 	margin-left: var(--ln-margin-before);
@@ -45,19 +49,23 @@ const makeLinenum = (() => {
 
 	color: var(--ln-colour);
 	background-color: var(--ln-background-colour);
-
-	user-select: none;
+}
+.ln-wrapper.ln-hide::before {
+	content: '';
 }
 
 .ln-line {
 	display: block;
+
+	counter-increment: ln-count;
 }
 `);
     const defaultMakeLinenumOptions = {
         defaultStartNum: 1,
         containerClassName: "ln-container",
         lineClassName: "ln-line",
-        lineNumClassName: "ln-num",
+        lineWrapperClassName: "ln-wrapper",
+        hideNumClassName: "ln-hide",
         startNumDataAttribute: "data-ln-start",
         skipDataAttribute: "data-ln-skip",
     };
@@ -139,6 +147,7 @@ const makeLinenum = (() => {
         return {
             element: span,
             num: currentLine.num,
+            resetNum: currentLine.resetNum,
             showNum: currentLine.showNum,
         };
     }
@@ -155,6 +164,7 @@ const makeLinenum = (() => {
             // Reset currentLine
             currentLine.children.length = 0;
             currentLine.num += 1;
+            currentLine.resetNum = null;
             currentLine.showNum = true;
         }
         // Do not make a new line for the last textLine, which may yet be incomplete
@@ -175,13 +185,19 @@ const makeLinenum = (() => {
         if (skip !== null) {
             currentLine.num += skip - 1;
             currentLine.showNum = false;
-            if (startNum !== null) {
+            if (startNum === null) {
+                currentLine.num += skip - 1;
+                currentLine.resetNum = currentLine.num + 1;
+            }
+            else {
                 currentLine.num = startNum - 1;
+                currentLine.resetNum = startNum - 1;
             }
         }
         else {
             if (startNum !== null) {
                 currentLine.num = startNum;
+                currentLine.resetNum = startNum;
             }
         }
         traverse(element, lines, currentLine, wrapperStack, options);
@@ -253,10 +269,12 @@ const makeLinenum = (() => {
         }
         const lines = [];
         const lineWrapperStack = [];
+        const initialNum = (_a = readStartNumAttribute(container, options)) !== null && _a !== void 0 ? _a : options.defaultStartNum;
         const currentLine = {
             children: [],
             showNum: true,
-            num: (_a = readStartNumAttribute(container, options)) !== null && _a !== void 0 ? _a : options.defaultStartNum,
+            resetNum: initialNum,
+            num: initialNum,
         };
         traverse(container, lines, currentLine, lineWrapperStack, options);
         if (currentLine.children.length > 0) {
@@ -264,7 +282,7 @@ const makeLinenum = (() => {
         }
         return lines;
     }
-    function convertContainer(container, options) {
+    function convertContainer(container, startNum, options) {
         if (options.containerClassName !== null) {
             container.classList.add(options.containerClassName);
         }
@@ -274,14 +292,31 @@ const makeLinenum = (() => {
         const elements = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const numElement = document.createElement("span");
-            if (options.lineNumClassName !== null) {
-                numElement.classList.add(options.lineNumClassName);
+            const br = document.createElement("br");
+            line.element.append(br);
+            if (line.resetNum !== null) {
+                if (elements.length === 0) {
+                    container.style.counterReset = `ln-count ${line.resetNum}`;
+                }
+                else {
+                    const prevLine = elements[elements.length - 1].querySelector("span.ln-line");
+                    if (prevLine === null) {
+                        console.error(`linenum.js:populateContainer: previous line element not found when setting line number to ${line.resetNum}`);
+                    }
+                    else {
+                        prevLine.style.counterSet = `ln-count ${line.resetNum}`;
+                    }
+                }
             }
-            if (line.showNum) {
-                numElement.append(line.num.toString());
+            const lineWrapper = document.createElement("span");
+            if (options.lineWrapperClassName !== null) {
+                lineWrapper.classList.add(options.lineWrapperClassName);
             }
-            elements.push(numElement, line.element);
+            if (!line.showNum) {
+                lineWrapper.classList.add(options.hideNumClassName);
+            }
+            lineWrapper.append(line.element);
+            elements.push(lineWrapper);
         }
         container.append(...elements);
     }
@@ -297,7 +332,7 @@ const makeLinenum = (() => {
                 console.error("linenum.js: failed to make lines for container, skipping:", container);
                 continue;
             }
-            convertContainer(container, reifiedOptions);
+            convertContainer(container, lines.length > 0 ? lines[0].resetNum : null, reifiedOptions);
             populateContainer(container, lines, reifiedOptions);
         }
         if (stylesheetParent !== null) {
