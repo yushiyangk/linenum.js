@@ -369,6 +369,9 @@ const makeLinenum = (() => {
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
 
+			const br = document.createElement("br");
+			line.element.append(br);
+
 			const numElement = document.createElement("span");
 			if (options.lineNumClassName !== null) {
 				numElement.classList.add(options.lineNumClassName);
