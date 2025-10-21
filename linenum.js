@@ -66,10 +66,10 @@ const makeLinenum = (() => {
         skipDataAttribute: "data-ln-skip",
     };
     function validateMakeLinenumOptions(options) {
-        if (options.defaultStartNum !== null && !Number.isInteger(options.defaultStartNum)) {
+        if (!Number.isInteger(options.defaultStartNum)) {
             throw new Error(`options.defaultStartNum must be an integer, got ${options.defaultStartNum}`);
         }
-        if (options.startNumDataAttribute !== null && !options.startNumDataAttribute.startsWith("data-")) {
+        if (!options.startNumDataAttribute.startsWith("data-")) {
             throw new Error(`options.startNumDataAttribute must start with 'data-', got '${options.startNumDataAttribute}'`);
         }
         return true;
@@ -92,28 +92,24 @@ const makeLinenum = (() => {
             || displayValue.startsWith("list"));
     }
     function readStartNumAttribute(element, options) {
-        if (options.startNumDataAttribute !== null) {
-            const startNumAttribute = element.getAttribute(options.startNumDataAttribute);
-            if (startNumAttribute !== null) {
-                const startNum = parseInt(startNumAttribute, 10);
-                if (!Number.isNaN(startNum)) {
-                    return startNum;
-                }
+        const startNumAttribute = element.getAttribute(options.startNumDataAttribute);
+        if (startNumAttribute !== null) {
+            const startNum = parseInt(startNumAttribute, 10);
+            if (!Number.isNaN(startNum)) {
+                return startNum;
             }
         }
         return null;
     }
     function readSkipAttribute(element, options) {
-        if (options.skipDataAttribute !== null) {
-            const skipAttribute = element.getAttribute(options.skipDataAttribute);
-            if (skipAttribute !== null) {
-                const skip = parseInt(skipAttribute, 10);
-                if (!Number.isNaN(skip)) {
-                    return skip;
-                }
-                else {
-                    return 0;
-                }
+        const skipAttribute = element.getAttribute(options.skipDataAttribute);
+        if (skipAttribute !== null) {
+            const skip = parseInt(skipAttribute, 10);
+            if (!Number.isNaN(skip)) {
+                return skip;
+            }
+            else {
+                return 0;
             }
         }
         return null;
@@ -130,9 +126,7 @@ const makeLinenum = (() => {
     }
     function makeLine(currentLine, wrapperStack, options) {
         const span = document.createElement("span");
-        if (options.lineClassName !== null) {
-            span.classList.add(options.lineClassName);
-        }
+        span.classList.add(options.lineClassName);
         let currentWrapper = span;
         for (let i = 0; i < wrapperStack.length; i++) {
             const wrapperElement = makeWrapper(wrapperStack[i], options);
@@ -269,9 +263,7 @@ const makeLinenum = (() => {
         return lines;
     }
     function convertContainer(container, options) {
-        if (options.containerClassName !== null) {
-            container.classList.add(options.containerClassName);
-        }
+        container.classList.add(options.containerClassName);
     }
     function populateContainer(container, lines, options) {
         container.innerHTML = "";
@@ -282,9 +274,7 @@ const makeLinenum = (() => {
             const br = document.createElement("br");
             line.element.append(br);
             const numElement = document.createElement("span");
-            if (options.lineNumClassName !== null) {
-                numElement.classList.add(options.lineNumClassName);
-            }
+            numElement.classList.add(options.lineNumClassName);
             if (line.showNum) {
                 numElement.append(line.num.toString());
             }

@@ -66,11 +66,11 @@ const makeLinenum = (() => {
 
 	interface MakeLinenumOptions {
 		defaultStartNum: number,
-		containerClassName: string | null,
-		lineClassName: string | null,
-		lineNumClassName: string | null,
-		startNumDataAttribute: string | null,
-		skipDataAttribute: string | null,  // this data attribute prevents the current line from being counted, and the line number will be incremented by the value of this attribute
+		containerClassName: string,
+		lineClassName: string,
+		lineNumClassName: string,
+		startNumDataAttribute: string,
+		skipDataAttribute: string,  // this data attribute prevents the current line from being counted, and the line number will be incremented by the value of this attribute
 	}
 	const defaultMakeLinenumOptions: MakeLinenumOptions = {
 		defaultStartNum: 1,
@@ -81,10 +81,10 @@ const makeLinenum = (() => {
 		skipDataAttribute: "data-ln-skip",
 	}
 	function validateMakeLinenumOptions(options: MakeLinenumOptions): boolean {
-		if (options.defaultStartNum !== null && !Number.isInteger(options.defaultStartNum)) {
+		if (!Number.isInteger(options.defaultStartNum)) {
 			throw new Error(`options.defaultStartNum must be an integer, got ${options.defaultStartNum}`);
 		}
-		if (options.startNumDataAttribute !== null && !options.startNumDataAttribute.startsWith("data-")) {
+		if (!options.startNumDataAttribute.startsWith("data-")) {
 			throw new Error(`options.startNumDataAttribute must start with 'data-', got '${options.startNumDataAttribute}'`);
 		}
 		return true;
@@ -119,27 +119,23 @@ const makeLinenum = (() => {
 
 
 	function readStartNumAttribute(element: Element, options: MakeLinenumOptions): number | null {
-		if (options.startNumDataAttribute !== null) {
-			const startNumAttribute = element.getAttribute(options.startNumDataAttribute);
-			if (startNumAttribute !== null) {
-				const startNum = parseInt(startNumAttribute, 10);
-				if (!Number.isNaN(startNum)) {
-					return startNum;
-				}
+		const startNumAttribute = element.getAttribute(options.startNumDataAttribute);
+		if (startNumAttribute !== null) {
+			const startNum = parseInt(startNumAttribute, 10);
+			if (!Number.isNaN(startNum)) {
+				return startNum;
 			}
 		}
 		return null;
 	}
 	function readSkipAttribute(element: Element, options: MakeLinenumOptions): number | null {
-		if (options.skipDataAttribute !== null) {
-			const skipAttribute = element.getAttribute(options.skipDataAttribute);
-			if (skipAttribute !== null) {
-				const skip = parseInt(skipAttribute, 10);
-				if (!Number.isNaN(skip)) {
-					return skip;
-				} else {
-					return 0;
-				}
+		const skipAttribute = element.getAttribute(options.skipDataAttribute);
+		if (skipAttribute !== null) {
+			const skip = parseInt(skipAttribute, 10);
+			if (!Number.isNaN(skip)) {
+				return skip;
+			} else {
+				return 0;
 			}
 		}
 		return null;
@@ -179,9 +175,7 @@ const makeLinenum = (() => {
 		options: MakeLinenumOptions,
 	): Line {
 		const span = document.createElement("span");
-		if (options.lineClassName !== null) {
-			span.classList.add(options.lineClassName);
-		}
+		span.classList.add(options.lineClassName);
 
 		let currentWrapper: Element = span;
 		for (let i = 0; i < wrapperStack.length; i++) {
@@ -355,9 +349,7 @@ const makeLinenum = (() => {
 	}
 
 	function convertContainer(container: Element, options: MakeLinenumOptions): void {
-		if (options.containerClassName !== null) {
-			container.classList.add(options.containerClassName);
-		}
+		container.classList.add(options.containerClassName);
 	}
 
 	function populateContainer(container: Element, lines: Line[], options: MakeLinenumOptions): void {
@@ -373,9 +365,7 @@ const makeLinenum = (() => {
 			line.element.append(br);
 
 			const numElement = document.createElement("span");
-			if (options.lineNumClassName !== null) {
-				numElement.classList.add(options.lineNumClassName);
-			}
+			numElement.classList.add(options.lineNumClassName);
 			if (line.showNum) {
 				numElement.append(line.num.toString());
 			}
