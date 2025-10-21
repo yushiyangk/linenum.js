@@ -1,58 +1,10 @@
 "use strict";
 // linenum.js
-// version 0.1.1
+// version 0.2
 // Yu Shiyang <yu.shiyang@gnayihs.uy>
 // Browser compatibility: ES6
 // This includes support for all current browsers with any significant market share (at least 0.1%)
 const makeLinenum = (() => {
-    const BASE_STYLE = (`:root {
-	--ln-colour: slategrey;
-	--ln-background-colour: ghostwhite;
-	--ln-margin-before: 0;
-	--ln-margin-after: 0;
-	--ln-margin-vertical: 0;
-	--ln-padding-before: 0;
-	--ln-padding-after: 0;
-	--ln-padding-vertical: 0;
-
-	--ln-num-spacing: 1em;
-}
-
-.ln-container {
-	display: grid;
-	grid-template-columns: auto 1fr;
-	grid-auto-flow: row;
-	grid-gap: 0 var(--ln-num-spacing) ;
-	justify-items: stretch;
-	align-items: stretch;
-}
-
-.ln-num {
-	display: block;
-
-	margin-left: var(--ln-margin-before);
-	margin-inline-start: var(--ln-margin-before);
-	margin-right: var(--ln-margin-after);
-	margin-inline-end: var(--ln-margin-after);
-	margin-top: var(--ln-margin-vertical);
-	margin-bottom: var(--ln-margin-vertical);
-	padding-left: var(--ln-padding-before);
-	padding-inline-start: var(--ln-padding-before);
-	padding-right: var(--ln-padding-after);
-	padding-inline-end: var(--ln-padding-after);
-	padding-top: var(--ln-padding-vertical);
-	padding-bottom: var(--ln-padding-vertical);
-
-	color: var(--ln-colour);
-	background-color: var(--ln-background-colour);
-
-	user-select: none;
-}
-
-.ln-line {
-	display: block;
-}
-`);
     const defaultMakeLinenumOptions = {
         defaultStartNum: 1,
         containerClassName: "ln-container",
@@ -62,10 +14,10 @@ const makeLinenum = (() => {
         skipDataAttribute: "data-ln-skip",
     };
     function validateMakeLinenumOptions(options) {
-        if (options.defaultStartNum !== null && !Number.isInteger(options.defaultStartNum)) {
+        if (!Number.isInteger(options.defaultStartNum)) {
             throw new Error(`options.defaultStartNum must be an integer, got ${options.defaultStartNum}`);
         }
-        if (options.startNumDataAttribute !== null && !options.startNumDataAttribute.startsWith("data-")) {
+        if (!options.startNumDataAttribute.startsWith("data-")) {
             throw new Error(`options.startNumDataAttribute must start with 'data-', got '${options.startNumDataAttribute}'`);
         }
         return true;
@@ -87,29 +39,79 @@ const makeLinenum = (() => {
             || displayValue.startsWith("table")
             || displayValue.startsWith("list"));
     }
+    function getBaseStyle(options) {
+        return (`:root {
+	--ln-colour: slategrey;
+	--ln-background-colour: ghostwhite;
+	--ln-margin-before: 0;
+	--ln-margin-after: 0;
+	--ln-margin-vertical: 0;
+	--ln-padding-before: 0;
+	--ln-padding-after: 0;
+	--ln-padding-vertical: 0;
+
+	--ln-num-spacing: 1em;
+}
+
+.${options.containerClassName} {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-auto-flow: column;
+	grid-gap: 0 var(--ln-num-spacing) ;
+	justify-items: stretch;
+	align-items: stretch;
+}
+
+.${options.lineNumClassName} {
+	display: block;
+
+	grid-column: 1;
+
+	margin-left: var(--ln-margin-before);
+	margin-inline-start: var(--ln-margin-before);
+	margin-right: var(--ln-margin-after);
+	margin-inline-end: var(--ln-margin-after);
+	margin-top: var(--ln-margin-vertical);
+	margin-bottom: var(--ln-margin-vertical);
+	padding-left: var(--ln-padding-before);
+	padding-inline-start: var(--ln-padding-before);
+	padding-right: var(--ln-padding-after);
+	padding-inline-end: var(--ln-padding-after);
+	padding-top: var(--ln-padding-vertical);
+	padding-bottom: var(--ln-padding-vertical);
+
+	color: var(--ln-colour);
+	background-color: var(--ln-background-colour);
+
+	user-select: none;
+}
+
+.${options.lineClassName} {
+	display: block;
+
+	grid-column: 2;
+}
+`);
+    }
     function readStartNumAttribute(element, options) {
-        if (options.startNumDataAttribute !== null) {
-            const startNumAttribute = element.getAttribute(options.startNumDataAttribute);
-            if (startNumAttribute !== null) {
-                const startNum = parseInt(startNumAttribute, 10);
-                if (!Number.isNaN(startNum)) {
-                    return startNum;
-                }
+        const startNumAttribute = element.getAttribute(options.startNumDataAttribute);
+        if (startNumAttribute !== null) {
+            const startNum = parseInt(startNumAttribute, 10);
+            if (!Number.isNaN(startNum)) {
+                return startNum;
             }
         }
         return null;
     }
     function readSkipAttribute(element, options) {
-        if (options.skipDataAttribute !== null) {
-            const skipAttribute = element.getAttribute(options.skipDataAttribute);
-            if (skipAttribute !== null) {
-                const skip = parseInt(skipAttribute, 10);
-                if (!Number.isNaN(skip)) {
-                    return skip;
-                }
-                else {
-                    return 0;
-                }
+        const skipAttribute = element.getAttribute(options.skipDataAttribute);
+        if (skipAttribute !== null) {
+            const skip = parseInt(skipAttribute, 10);
+            if (!Number.isNaN(skip)) {
+                return skip;
+            }
+            else {
+                return 0;
             }
         }
         return null;
@@ -126,9 +128,7 @@ const makeLinenum = (() => {
     }
     function makeLine(currentLine, wrapperStack, options) {
         const span = document.createElement("span");
-        if (options.lineClassName !== null) {
-            span.classList.add(options.lineClassName);
-        }
+        span.classList.add(options.lineClassName);
         let currentWrapper = span;
         for (let i = 0; i < wrapperStack.length; i++) {
             const wrapperElement = makeWrapper(wrapperStack[i], options);
@@ -265,25 +265,25 @@ const makeLinenum = (() => {
         return lines;
     }
     function convertContainer(container, options) {
-        if (options.containerClassName !== null) {
-            container.classList.add(options.containerClassName);
-        }
+        container.classList.add(options.containerClassName);
     }
     function populateContainer(container, lines, options) {
         container.innerHTML = "";
-        const elements = [];
+        const lineElements = [];
+        const numElements = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
+            const br = document.createElement("br");
+            line.element.append(br);
             const numElement = document.createElement("span");
-            if (options.lineNumClassName !== null) {
-                numElement.classList.add(options.lineNumClassName);
-            }
+            numElement.classList.add(options.lineNumClassName);
             if (line.showNum) {
                 numElement.append(line.num.toString());
             }
-            elements.push(numElement, line.element);
+            lineElements.push(line.element);
+            numElements.push(numElement);
         }
-        container.append(...elements);
+        container.append(...numElements, ...lineElements);
     }
     return (preformattedElements, stylesheetParent, options) => {
         const reifiedOptions = reifyOptions(options, defaultMakeLinenumOptions);
@@ -303,7 +303,7 @@ const makeLinenum = (() => {
         if (stylesheetParent !== null) {
             const style = document.createElement("style");
             style.setAttribute("type", "text/css");
-            style.append(BASE_STYLE);
+            style.append(getBaseStyle(reifiedOptions));
             stylesheetParent.prepend(style);
         }
     };
