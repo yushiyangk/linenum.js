@@ -1,6 +1,6 @@
 "use strict";
 // linenum.js
-// version 0.2
+// version 0.3
 // Yu Shiyang <yu.shiyang@gnayihs.uy>
 // Browser compatibility: ES6
 // This includes support for all current browsers with any significant market share (at least 0.1%)
@@ -10,15 +10,31 @@ const makeLinenum = (() => {
         containerClassName: "ln-container",
         lineClassName: "ln-line",
         lineNumClassName: "ln-num",
+        insertedLineClassName: "ln-ins",
+        deletedLineClassName: "ln-del",
         startNumDataAttribute: "data-ln-start",
         skipDataAttribute: "data-ln-skip",
+        diffContainerClassName: "ln-diff",
+        lineDiffNumClassName: "ln-dnum",
+        origNumDataAttribute: "data-ln-orig",
+        insertedLinesCountDataAttribute: "data-ln-ins",
+        deletedLinesCountDataAttribute: "data-ln-del",
     };
     function validateMakeLinenumOptions(options) {
         if (!Number.isInteger(options.defaultStartNum)) {
             throw new Error(`options.defaultStartNum must be an integer, got ${options.defaultStartNum}`);
         }
-        if (!options.startNumDataAttribute.startsWith("data-")) {
-            throw new Error(`options.startNumDataAttribute must start with 'data-', got '${options.startNumDataAttribute}'`);
+        for (const dataAttributeKey of [
+            "startNumDataAttribute",
+            "skipDataAttribute",
+            "origNumDataAttribute",
+            "insertedLinesCountDataAttribute",
+            "deletedLinesCountDataAttribute",
+        ]) {
+            const dataAttribute = options[dataAttributeKey];
+            if (!dataAttribute.startsWith("data-")) {
+                throw new Error(`options.${dataAttributeKey} must start with 'data-', got '${dataAttribute}'`);
+            }
         }
         return true;
     }
@@ -41,8 +57,12 @@ const makeLinenum = (() => {
     }
     function getBaseStyle(options) {
         return (`:root {
-	--ln-colour: slategrey;
-	--ln-background-colour: ghostwhite;
+	--ln-num-colour: slategrey;
+	--ln-num-background: ghostwhite;
+	--ln-line-colour: inherit;
+	--ln-line-background: inherit;
+	--ln-insertion-background: lightgreen;
+	--ln-deletion-background: lightsalmon;
 	--ln-margin-before: 0;
 	--ln-margin-after: 0;
 	--ln-margin-vertical: 0;
@@ -55,17 +75,18 @@ const makeLinenum = (() => {
 
 .${options.containerClassName} {
 	display: grid;
-	grid-template-columns: auto 1fr;
+	grid-template-columns: [num] auto [line] 1fr [end];
 	grid-auto-flow: column;
 	grid-gap: 0 var(--ln-num-spacing) ;
 	justify-items: stretch;
 	align-items: stretch;
 }
+.${options.containerClassName}.${options.diffContainerClassName} {
+	grid-template-columns: [diff] auto [num] auto [line] 1fr [end];
+}
 
-.${options.lineNumClassName} {
+.${options.lineNumClassName}, .${options.lineDiffNumClassName} {
 	display: block;
-
-	grid-column: 1;
 
 	margin-left: var(--ln-margin-before);
 	margin-inline-start: var(--ln-margin-before);
@@ -80,43 +101,78 @@ const makeLinenum = (() => {
 	padding-top: var(--ln-padding-vertical);
 	padding-bottom: var(--ln-padding-vertical);
 
-	color: var(--ln-colour);
-	background-color: var(--ln-background-colour);
+	color: var(--ln-num-colour);
+	background-color: var(--ln-num-background);
 
 	text-align: right;
 
 	user-select: none;
 }
+.${options.lineDiffNumClassName} {
+	grid-column: diff;
+}
+.${options.lineNumClassName} {
+	grid-column: num;
+}
 
 .${options.lineClassName} {
 	display: block;
 
-	grid-column: 2;
+	grid-column: line;
+
+	color: var(--ln-line-colour);
+	background-color: var(--ln-line-background);
+}
+.${options.lineClassName}.${options.insertedLineClassName} {
+	background-color: var(--ln-insertion-background);
+}
+.${options.lineClassName}.${options.deletedLineClassName} {
+	background-color: var(--ln-deletion-background);
 }
 `);
     }
-    function readStartNumAttribute(element, options) {
-        const startNumAttribute = element.getAttribute(options.startNumDataAttribute);
-        if (startNumAttribute !== null) {
-            const startNum = parseInt(startNumAttribute, 10);
-            if (!Number.isNaN(startNum)) {
-                return startNum;
+    function readIntAttribute(element, attributeName, defaultValue = null) {
+        const value = element.getAttribute(attributeName);
+        if (value !== null) {
+            const intValue = parseInt(value, 10);
+            if (!Number.isNaN(intValue)) {
+                return intValue;
+            }
+            else {
+                return defaultValue;
             }
         }
         return null;
     }
-    function readSkipAttribute(element, options) {
-        const skipAttribute = element.getAttribute(options.skipDataAttribute);
-        if (skipAttribute !== null) {
-            const skip = parseInt(skipAttribute, 10);
-            if (!Number.isNaN(skip)) {
-                return skip;
-            }
-            else {
-                return 0;
-            }
+    let DiffLineType;
+    (function (DiffLineType) {
+        DiffLineType[DiffLineType["Insertion"] = 1] = "Insertion";
+        DiffLineType[DiffLineType["Deletion"] = 2] = "Deletion";
+    })(DiffLineType || (DiffLineType = {}));
+    class LineArray extends Array {
+        constructor() {
+            super(...arguments);
+            this.hasDiff = false;
         }
-        return null;
+    }
+    function advanceCurrentScanLine(currentScanLine) {
+        currentScanLine.children.length = 0;
+        if (currentScanLine.diff === DiffLineType.Insertion && currentScanLine.diffLinesCount > 0) {
+            currentScanLine.num += 1;
+        }
+        else if (currentScanLine.diff === DiffLineType.Deletion && currentScanLine.diffLinesCount > 0) {
+            currentScanLine.origNum += 1;
+        }
+        else {
+            currentScanLine.num += 1;
+            currentScanLine.origNum += 1;
+        }
+        currentScanLine.showNum = true;
+        currentScanLine.diffLinesCount -= 1;
+        if (currentScanLine.diffLinesCount <= 0) {
+            currentScanLine.diffLinesCount = 0;
+            currentScanLine.diff = null;
+        }
     }
     function makeWrapper(wrapper, options) {
         const wrapperElement = wrapper.original.cloneNode(false);
@@ -128,7 +184,7 @@ const makeLinenum = (() => {
         }
         return wrapperElement;
     }
-    function makeLine(currentScanLine, wrapperStack, options) {
+    function addLine(lines, currentScanLine, wrapperStack, options) {
         const span = document.createElement("span");
         span.classList.add(options.lineClassName);
         let currentWrapper = span;
@@ -140,14 +196,15 @@ const makeLinenum = (() => {
         currentWrapper.append(...currentScanLine.children);
         const line = {
             element: span,
-            num: currentScanLine.num,
+            num: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Deletion ? currentScanLine.origNum : currentScanLine.num,
             showNum: currentScanLine.showNum,
+            diff: currentScanLine.diffLinesCount > 0 ? currentScanLine.diff : null,
         };
-        // Reset currentLine
-        currentScanLine.children.length = 0;
-        currentScanLine.num += 1;
-        currentScanLine.showNum = true;
-        return line;
+        lines.push(line);
+        if (line.diff !== null) {
+            lines.hasDiff = true;
+        }
+        advanceCurrentScanLine(currentScanLine);
     }
     function traverseTextNode(textNode, lines, currentScanLine, wrapperStack, options) {
         if (textNode.nodeType !== Node.TEXT_NODE) {
@@ -158,7 +215,7 @@ const makeLinenum = (() => {
         for (let i = 0; i < textLines.length - 1; i++) {
             const textLine = textLines[i];
             currentScanLine.children.push(textLine);
-            lines.push(makeLine(currentScanLine, wrapperStack, options));
+            addLine(lines, currentScanLine, wrapperStack, options);
         }
         // Do not make a new line for the last textLine, which may yet be incomplete
         if (textLines.length > 0) {
@@ -173,18 +230,53 @@ const makeLinenum = (() => {
         const wrapperStartLine = lines.length;
         const wrapperStartChildIndex = currentScanLine.children.length;
         wrapperStack.push({ original: element, idUsed: false });
-        const startNum = readStartNumAttribute(element, options);
-        const skip = readSkipAttribute(element, options);
+        const startNum = readIntAttribute(element, options.startNumDataAttribute);
+        const skip = readIntAttribute(element, options.skipDataAttribute, 0);
+        const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
+        let insertedLinesCount = readIntAttribute(element, options.insertedLinesCountDataAttribute);
+        let deletedLinesCount = readIntAttribute(element, options.deletedLinesCountDataAttribute);
+        if (insertedLinesCount !== null && deletedLinesCount !== null) {
+            console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} and ${options.deletedLinesCountDataAttribute} attributes cannot both be set, ignoring both:`, element);
+            insertedLinesCount = null;
+            deletedLinesCount = null;
+        }
         if (skip !== null) {
-            currentScanLine.num += skip - 1;
             currentScanLine.showNum = false;
             if (startNum !== null) {
                 currentScanLine.num = startNum - 1;
+            }
+            else {
+                currentScanLine.num += skip - 1;
+            }
+            if (originalStartNum !== null) {
+                currentScanLine.origNum = originalStartNum - 1;
+            }
+            else if (currentScanLine.origNum !== undefined) {
+                currentScanLine.origNum += skip - 1;
+            }
+            if (insertedLinesCount !== null) {
+                currentScanLine.diffLinesCount = insertedLinesCount - skip + 1;
+                currentScanLine.diff = DiffLineType.Insertion;
+            }
+            else if (deletedLinesCount !== null) {
+                currentScanLine.diffLinesCount = deletedLinesCount - skip + 1;
+                currentScanLine.diff = DiffLineType.Deletion;
             }
         }
         else {
             if (startNum !== null) {
                 currentScanLine.num = startNum;
+            }
+            if (originalStartNum !== null) {
+                currentScanLine.origNum = originalStartNum;
+            }
+            if (insertedLinesCount !== null) {
+                currentScanLine.diffLinesCount = insertedLinesCount;
+                currentScanLine.diff = DiffLineType.Insertion;
+            }
+            else if (deletedLinesCount !== null) {
+                currentScanLine.diffLinesCount = deletedLinesCount;
+                currentScanLine.diff = DiffLineType.Deletion;
             }
         }
         traverse(element, lines, currentScanLine, wrapperStack, options);
@@ -242,7 +334,7 @@ const makeLinenum = (() => {
         }
     }
     function makeLines(container, options) {
-        var _a;
+        var _a, _b;
         const containerComputedStyle = window.getComputedStyle(container);
         const containerIsPreformatted = containerComputedStyle.whiteSpace.startsWith("pre") || containerComputedStyle.whiteSpaceCollapse === "preserve";
         if (!containerIsPreformatted) {
@@ -254,39 +346,71 @@ const makeLinenum = (() => {
             console.warn("linenum.js:makeLines: container must be a block element:", container);
             return null;
         }
-        const lines = [];
+        const lines = new LineArray();
         const lineWrapperStack = [];
+        const startNum = (_a = readIntAttribute(container, options.startNumDataAttribute)) !== null && _a !== void 0 ? _a : options.defaultStartNum;
         const currentScanLine = {
             children: [],
             showNum: true,
-            num: (_a = readStartNumAttribute(container, options)) !== null && _a !== void 0 ? _a : options.defaultStartNum,
+            num: startNum,
+            origNum: (_b = readIntAttribute(container, options.origNumDataAttribute)) !== null && _b !== void 0 ? _b : startNum,
+            diffLinesCount: 0,
+            diff: null,
         };
         traverse(container, lines, currentScanLine, lineWrapperStack, options);
         if (currentScanLine.children.length > 0) {
-            lines.push(makeLine(currentScanLine, lineWrapperStack, options));
+            addLine(lines, currentScanLine, lineWrapperStack, options);
         }
         return lines;
     }
-    function convertContainer(container, options) {
+    function convertContainer(container, hasDiff, options) {
         container.classList.add(options.containerClassName);
+        if (hasDiff) {
+            container.classList.add(options.diffContainerClassName);
+        }
     }
     function populateContainer(container, lines, options) {
+        convertContainer(container, lines.hasDiff, options);
         container.innerHTML = "";
         const lineElements = [];
         const numElements = [];
+        const diffNumElements = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const br = document.createElement("br");
             line.element.append(br);
+            if (lines.hasDiff) {
+                if (line.diff === DiffLineType.Insertion) {
+                    line.element.classList.add(options.insertedLineClassName);
+                }
+                else if (line.diff === DiffLineType.Deletion) {
+                    line.element.classList.add(options.deletedLineClassName);
+                }
+            }
             const numElement = document.createElement("span");
             numElement.classList.add(options.lineNumClassName);
             if (line.showNum) {
-                numElement.append(line.num.toString());
+                if (!lines.hasDiff || line.diff !== DiffLineType.Deletion) {
+                    numElement.append(line.num.toString());
+                }
             }
             lineElements.push(line.element);
             numElements.push(numElement);
+            if (lines.hasDiff) {
+                const diffNumElement = document.createElement("span");
+                diffNumElement.classList.add(options.lineDiffNumClassName);
+                if (line.showNum) {
+                    if (line.diff === DiffLineType.Insertion) {
+                        diffNumElement.append("+");
+                    }
+                    else if (line.diff === DiffLineType.Deletion) {
+                        diffNumElement.append(line.num.toString() + "−");
+                    }
+                }
+                diffNumElements.push(diffNumElement);
+            }
         }
-        container.append(...numElements, ...lineElements);
+        container.append(...diffNumElements, ...numElements, ...lineElements);
     }
     return (preformattedElements, stylesheetParent, options) => {
         const reifiedOptions = reifyOptions(options, defaultMakeLinenumOptions);
@@ -300,7 +424,6 @@ const makeLinenum = (() => {
                 console.error("linenum.js: failed to make lines for container, skipping:", container);
                 continue;
             }
-            convertContainer(container, reifiedOptions);
             populateContainer(container, lines, reifiedOptions);
         }
         if (stylesheetParent !== null) {
