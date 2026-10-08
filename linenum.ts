@@ -20,7 +20,8 @@ const makeLinenum = (() => {
 
 		// for diffs
 		diffContainerClassName: string,
-		lineDiffNumClassName: string,
+		origNumClassName: string,
+		diffSignClassName: string,
 		origNumDataAttribute: string,  // if this data attribute is not given, defaults to the same value as startNumDataAttribute
 		// these data attributes specifies the number of lines, including this one, to be treated as a diff
 		insertedLinesCountDataAttribute: string,
@@ -36,7 +37,8 @@ const makeLinenum = (() => {
 		startNumDataAttribute: "data-ln-start",
 		skipDataAttribute: "data-ln-skip",
 		diffContainerClassName: "ln-diff",
-		lineDiffNumClassName: "ln-dnum",
+		origNumClassName: "ln-orig",
+		diffSignClassName: "ln-sign",
 		origNumDataAttribute: "data-ln-orig",
 		insertedLinesCountDataAttribute: "data-ln-ins",
 		deletedLinesCountDataAttribute: "data-ln-del",
@@ -112,17 +114,18 @@ const makeLinenum = (() => {
 
 .${options.containerClassName} {
 	display: grid;
-	grid-template-columns: [num] auto [line] 1fr [end];
+	grid-template-columns: [num] auto var(--ln-num-spacing) [line] 1fr [end];
 	grid-auto-flow: column;
-	grid-gap: 0 var(--ln-num-spacing) ;
+	grid-gap: 0;
+	gap: 0;
 	justify-items: stretch;
 	align-items: stretch;
 }
 .${options.containerClassName}.${options.diffContainerClassName} {
-	grid-template-columns: [diff] auto [num] auto [line] 1fr [end];
+	grid-template-columns: [orig] auto var(--ln-num-spacing) [num] auto [sign] auto var(--ln-num-spacing) [line] 1fr [end];
 }
 
-.${options.lineNumClassName}, .${options.lineDiffNumClassName} {
+.${options.lineNumClassName}, .${options.origNumClassName}, .${options.diffSignClassName} {
 	display: block;
 
 	margin-left: var(--ln-margin-before);
@@ -145,11 +148,14 @@ const makeLinenum = (() => {
 
 	user-select: none;
 }
-.${options.lineDiffNumClassName} {
-	grid-column: diff;
+.${options.origNumClassName} {
+	grid-column: orig;
 }
 .${options.lineNumClassName} {
 	grid-column: num;
+}
+.${options.diffSignClassName} {
+	grid-column: sign;
 }
 
 .${options.lineClassName} {
@@ -198,7 +204,8 @@ const makeLinenum = (() => {
 
 	interface Line {
 		element: HTMLSpanElement,
-		num: number,
+		num: number | null,
+		origNum: number | null,
 		showNum: boolean,
 		diff: DiffLineType | null,
 	}
@@ -277,7 +284,8 @@ const makeLinenum = (() => {
 
 		const line = {
 			element: span,
-			num: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Deletion ? currentScanLine.origNum : currentScanLine.num,
+			num: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Deletion ? null : currentScanLine.num,
+			origNum: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Insertion ? null : currentScanLine.origNum,
 			showNum: currentScanLine.showNum,
 			diff: currentScanLine.diffLinesCount > 0 ? currentScanLine.diff : null,
 		};
@@ -495,7 +503,8 @@ const makeLinenum = (() => {
 
 		const lineElements: HTMLSpanElement[] = [];
 		const numElements: HTMLSpanElement[] = [];
-		const diffNumElements: HTMLSpanElement[] = [];
+		const origNumElements: HTMLSpanElement[] = [];
+		const diffSignElements: HTMLSpanElement[] = [];
 
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
@@ -514,7 +523,9 @@ const makeLinenum = (() => {
 			numElement.classList.add(options.lineNumClassName);
 			if (line.showNum) {
 				if (!lines.hasDiff || line.diff !== DiffLineType.Deletion) {
-					numElement.append(line.num.toString());
+					if (line.num !== null) {
+						numElement.append(line.num.toString());
+					}
 				}
 			}
 
@@ -522,21 +533,28 @@ const makeLinenum = (() => {
 			numElements.push(numElement);
 
 			if (lines.hasDiff) {
-				const diffNumElement = document.createElement("span");
-				diffNumElement.classList.add(options.lineDiffNumClassName);
+				const origNumElement = document.createElement("span");
+				origNumElement.classList.add(options.origNumClassName);
 				if (line.showNum) {
-					if (line.diff === DiffLineType.Insertion) {
-						diffNumElement.append("+");
-					} else if (line.diff === DiffLineType.Deletion) {
-						diffNumElement.append(line.num.toString() + "−");
+					if (line.diff !== DiffLineType.Insertion && line.origNum !== null) {
+						origNumElement.append(line.origNum.toString());
 					}
 				}
 
-				diffNumElements.push(diffNumElement);
+				const diffSignElement = document.createElement("span");
+				diffSignElement.classList.add(options.diffSignClassName);
+				if (line.diff === DiffLineType.Insertion) {
+					diffSignElement.append("+");
+				} else if (line.diff === DiffLineType.Deletion) {
+					diffSignElement.append("−");
+				}
+
+				origNumElements.push(origNumElement);
+				diffSignElements.push(diffSignElement);
 			}
 		}
 
-		container.append(...diffNumElements, ...numElements, ...lineElements);
+		container.append(...origNumElements, ...numElements, ...diffSignElements, ...lineElements);
 	}
 
 	return (
