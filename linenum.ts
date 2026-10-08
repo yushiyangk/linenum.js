@@ -107,6 +107,8 @@ const makeLinenum = (() => {
 	color: var(--ln-colour);
 	background-color: var(--ln-background-colour);
 
+	text-align: right;
+
 	user-select: none;
 }
 
