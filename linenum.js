@@ -174,7 +174,7 @@ const makeLinenum = (() => {
             currentScanLine.diff = null;
         }
     }
-    function makeWrapper(wrapper, options) {
+    function makeWrapperElement(wrapper, options) {
         const wrapperElement = wrapper.original.cloneNode(false);
         if (wrapper.idUsed) {
             wrapperElement.removeAttribute("id");
@@ -188,12 +188,23 @@ const makeLinenum = (() => {
         const span = document.createElement("span");
         span.classList.add(options.lineClassName);
         let currentWrapper = span;
+        let currentScanChildIndex = 0;
         for (let i = 0; i < wrapperStack.length; i++) {
-            const wrapperElement = makeWrapper(wrapperStack[i], options);
+            const wrapper = wrapperStack[i];
+            const wrapperElement = makeWrapperElement(wrapperStack[i], options);
+            if (wrapper.startScanLine > lines.length) {
+                throw new Error(`wrapper started on a scan line below the current line: ${wrapper}`);
+            }
+            else if (wrapper.startScanLine === lines.length) {
+                // Wrapper started on the current line
+                // First add the elements encountered before the current wrapper
+                currentWrapper.append(...currentScanLine.children.slice(currentScanChildIndex, wrapper.startScanChildIndex));
+                currentScanChildIndex = wrapper.startScanChildIndex;
+            }
             currentWrapper.appendChild(wrapperElement);
             currentWrapper = wrapperElement;
         }
-        currentWrapper.append(...currentScanLine.children);
+        currentWrapper.append(...currentScanLine.children.slice(currentScanChildIndex));
         const line = {
             element: span,
             num: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Deletion ? currentScanLine.origNum : currentScanLine.num,
@@ -227,9 +238,14 @@ const makeLinenum = (() => {
         return;
     }
     function traverseElement(element, lines, currentScanLine, wrapperStack, options) {
-        const wrapperStartLine = lines.length;
-        const wrapperStartChildIndex = currentScanLine.children.length;
-        wrapperStack.push({ original: element, idUsed: false });
+        const elementStartScanLine = lines.length;
+        const elementStartScanChildIndex = currentScanLine.children.length;
+        wrapperStack.push({
+            original: element,
+            startScanLine: elementStartScanLine,
+            startScanChildIndex: elementStartScanChildIndex,
+            idUsed: false,
+        });
         const startNum = readIntAttribute(element, options.startNumDataAttribute);
         const skip = readIntAttribute(element, options.skipDataAttribute, 0);
         const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
@@ -281,10 +297,10 @@ const makeLinenum = (() => {
         }
         traverse(element, lines, currentScanLine, wrapperStack, options);
         const wrappedChildren = [];
-        if (lines.length === wrapperStartLine) {
-            wrappedChildren.push(...currentScanLine.children.slice(wrapperStartChildIndex));
+        if (lines.length === elementStartScanLine) {
+            wrappedChildren.push(...currentScanLine.children.slice(elementStartScanChildIndex));
         }
-        else if (lines.length > wrapperStartLine) {
+        else if (lines.length > elementStartScanLine) {
             // The earlier lines have already been wrapped, so we only need to wrap from the start of the current line
             wrappedChildren.push(...currentScanLine.children);
         }
@@ -292,7 +308,7 @@ const makeLinenum = (() => {
             throw new Error(`line count decreased after traversing element: ${element}`);
         }
         if (wrappedChildren.length > 0) {
-            const wrapperElement = makeWrapper(wrapperStack[wrapperStack.length - 1], options);
+            const wrapperElement = makeWrapperElement(wrapperStack[wrapperStack.length - 1], options);
             wrapperElement.append(...wrappedChildren);
             currentScanLine.children.length -= wrappedChildren.length;
             currentScanLine.children.push(wrapperElement);
