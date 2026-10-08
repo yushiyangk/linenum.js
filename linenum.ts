@@ -117,6 +117,7 @@ const makeLinenum = (() => {
 	--ln-line-padding-vertical: 0;
 
 	--ln-num-spacing: 1em;
+	--ln-diff-orig-num-spacing: 1em;
 	--ln-diff-num-spacing: 0.5em;
 	--ln-diff-sign-spacing: 0;
 }
@@ -131,7 +132,7 @@ const makeLinenum = (() => {
 	align-items: stretch;
 }
 .${options.containerClassName}.${options.diffContainerClassName} {
-	grid-template-columns: [orig] auto var(--ln-diff-num-spacing) [num] auto var(--ln-diff-num-spacing) [sign] auto var(--ln-diff-sign-spacing) [line] 1fr [end];
+	grid-template-columns: [orig] auto var(--ln-diff-orig-num-spacing) [num] auto var(--ln-diff-num-spacing) [sign] auto var(--ln-diff-sign-spacing) [line] 1fr [end];
 }
 
 .${options.lineNumClassName}, .${options.origNumClassName}, .${options.diffSignClassName} {
