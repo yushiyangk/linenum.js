@@ -1,5 +1,5 @@
 // linenum.js
-// version 0.3
+// version 0.3.1
 
 // Yu Shiyang <yu.shiyang@gnayihs.uy>
 
@@ -424,12 +424,11 @@ const makeLinenum = (() => {
 		} else {
 			throw new Error(`line count decreased after traversing element: ${element}`);
 		}
-		if (wrappedChildren.length > 0) {
-			const wrapperElement = makeWrapperElement(wrapperStack[wrapperStack.length - 1], options);
-			wrapperElement.append(...wrappedChildren);
-			currentScanLine.children.length -= wrappedChildren.length;
-			currentScanLine.children.push(wrapperElement);
-		}
+
+		const wrapperElement = makeWrapperElement(wrapperStack[wrapperStack.length - 1], options);
+		wrapperElement.append(...wrappedChildren);
+		currentScanLine.children.length -= wrappedChildren.length;
+		currentScanLine.children.push(wrapperElement);
 
 		wrapperStack.pop();
 	}

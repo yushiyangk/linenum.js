@@ -1,5 +1,11 @@
 ## Changelog
 
+### 0.3.1
+
+#### Fixed
+
+- Empty elements are now preserved in the output
+
 ### 0.3
 
 #### Added
