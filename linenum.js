@@ -128,7 +128,7 @@ const makeLinenum = (() => {
         }
         return wrapperElement;
     }
-    function makeLine(currentLine, wrapperStack, options) {
+    function makeLine(currentScanLine, wrapperStack, options) {
         const span = document.createElement("span");
         span.classList.add(options.lineClassName);
         let currentWrapper = span;
@@ -137,14 +137,19 @@ const makeLinenum = (() => {
             currentWrapper.appendChild(wrapperElement);
             currentWrapper = wrapperElement;
         }
-        currentWrapper.append(...currentLine.children);
-        return {
+        currentWrapper.append(...currentScanLine.children);
+        const line = {
             element: span,
-            num: currentLine.num,
-            showNum: currentLine.showNum,
+            num: currentScanLine.num,
+            showNum: currentScanLine.showNum,
         };
+        // Reset currentLine
+        currentScanLine.children.length = 0;
+        currentScanLine.num += 1;
+        currentScanLine.showNum = true;
+        return line;
     }
-    function traverseTextNode(textNode, lines, currentLine, wrapperStack, options) {
+    function traverseTextNode(textNode, lines, currentScanLine, wrapperStack, options) {
         if (textNode.nodeType !== Node.TEXT_NODE) {
             throw new Error(`not a text node: ${textNode}`);
         }
@@ -152,48 +157,44 @@ const makeLinenum = (() => {
         const textLines = text.split(/\r?\n|\r/);
         for (let i = 0; i < textLines.length - 1; i++) {
             const textLine = textLines[i];
-            currentLine.children.push(textLine);
-            lines.push(makeLine(currentLine, wrapperStack, options));
-            // Reset currentLine
-            currentLine.children.length = 0;
-            currentLine.num += 1;
-            currentLine.showNum = true;
+            currentScanLine.children.push(textLine);
+            lines.push(makeLine(currentScanLine, wrapperStack, options));
         }
         // Do not make a new line for the last textLine, which may yet be incomplete
         if (textLines.length > 0) {
             const textLinePart = textLines[textLines.length - 1];
             if (textLinePart.length > 0) {
-                currentLine.children.push(textLines[textLines.length - 1]);
+                currentScanLine.children.push(textLines[textLines.length - 1]);
             }
         }
         return;
     }
-    function traverseElement(element, lines, currentLine, wrapperStack, options) {
+    function traverseElement(element, lines, currentScanLine, wrapperStack, options) {
         const wrapperStartLine = lines.length;
-        const wrapperStartChildIndex = currentLine.children.length;
+        const wrapperStartChildIndex = currentScanLine.children.length;
         wrapperStack.push({ original: element, idUsed: false });
         const startNum = readStartNumAttribute(element, options);
         const skip = readSkipAttribute(element, options);
         if (skip !== null) {
-            currentLine.num += skip - 1;
-            currentLine.showNum = false;
+            currentScanLine.num += skip - 1;
+            currentScanLine.showNum = false;
             if (startNum !== null) {
-                currentLine.num = startNum - 1;
+                currentScanLine.num = startNum - 1;
             }
         }
         else {
             if (startNum !== null) {
-                currentLine.num = startNum;
+                currentScanLine.num = startNum;
             }
         }
-        traverse(element, lines, currentLine, wrapperStack, options);
+        traverse(element, lines, currentScanLine, wrapperStack, options);
         const wrappedChildren = [];
         if (lines.length === wrapperStartLine) {
-            wrappedChildren.push(...currentLine.children.slice(wrapperStartChildIndex));
+            wrappedChildren.push(...currentScanLine.children.slice(wrapperStartChildIndex));
         }
         else if (lines.length > wrapperStartLine) {
             // The earlier lines have already been wrapped, so we only need to wrap from the start of the current line
-            wrappedChildren.push(...currentLine.children);
+            wrappedChildren.push(...currentScanLine.children);
         }
         else {
             throw new Error(`line count decreased after traversing element: ${element}`);
@@ -201,8 +202,8 @@ const makeLinenum = (() => {
         if (wrappedChildren.length > 0) {
             const wrapperElement = makeWrapper(wrapperStack[wrapperStack.length - 1], options);
             wrapperElement.append(...wrappedChildren);
-            currentLine.children.length -= wrappedChildren.length;
-            currentLine.children.push(wrapperElement);
+            currentScanLine.children.length -= wrappedChildren.length;
+            currentScanLine.children.push(wrapperElement);
         }
         wrapperStack.pop();
     }
@@ -255,14 +256,14 @@ const makeLinenum = (() => {
         }
         const lines = [];
         const lineWrapperStack = [];
-        const currentLine = {
+        const currentScanLine = {
             children: [],
             showNum: true,
             num: (_a = readStartNumAttribute(container, options)) !== null && _a !== void 0 ? _a : options.defaultStartNum,
         };
-        traverse(container, lines, currentLine, lineWrapperStack, options);
-        if (currentLine.children.length > 0) {
-            lines.push(makeLine(currentLine, lineWrapperStack, options));
+        traverse(container, lines, currentScanLine, lineWrapperStack, options);
+        if (currentScanLine.children.length > 0) {
+            lines.push(makeLine(currentScanLine, lineWrapperStack, options));
         }
         return lines;
     }

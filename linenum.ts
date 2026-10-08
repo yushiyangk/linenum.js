@@ -157,7 +157,7 @@ const makeLinenum = (() => {
 		showNum: boolean,
 	}
 
-	interface CurrentLine {
+	interface CurrentScanLine {
 		children: (Node | string)[],
 		num: number,
 		showNum: boolean,
@@ -174,7 +174,7 @@ const makeLinenum = (() => {
 	}
 
 	function makeLine(
-		currentLine: CurrentLine,
+		currentScanLine: CurrentScanLine,
 		wrapperStack: Wrapper[],
 		options: MakeLinenumOptions,
 	): Line {
@@ -188,19 +188,26 @@ const makeLinenum = (() => {
 			currentWrapper = wrapperElement;
 		}
 
-		currentWrapper.append(...currentLine.children);
+		currentWrapper.append(...currentScanLine.children);
 
-		return {
+		const line = {
 			element: span,
-			num: currentLine.num,
-			showNum: currentLine.showNum,
+			num: currentScanLine.num,
+			showNum: currentScanLine.showNum,
 		};
+
+		// Reset currentLine
+		currentScanLine.children.length = 0;
+		currentScanLine.num += 1;
+		currentScanLine.showNum = true;
+
+		return line;
 	}
 
 	function traverseTextNode(
 		textNode: Text,
 		lines: Line[],
-		currentLine: CurrentLine,
+		currentScanLine: CurrentScanLine,
 		wrapperStack: Wrapper[],
 		options: MakeLinenumOptions,
 	): void {
@@ -213,19 +220,14 @@ const makeLinenum = (() => {
 		for (let i = 0; i < textLines.length - 1; i++) {
 			const textLine = textLines[i];
 
-			currentLine.children.push(textLine);
-			lines.push(makeLine(currentLine, wrapperStack, options));
-
-			// Reset currentLine
-			currentLine.children.length = 0;
-			currentLine.num += 1;
-			currentLine.showNum = true;
+			currentScanLine.children.push(textLine);
+			lines.push(makeLine(currentScanLine, wrapperStack, options));
 		}
 		// Do not make a new line for the last textLine, which may yet be incomplete
 		if (textLines.length > 0) {
 			const textLinePart = textLines[textLines.length - 1];
 			if (textLinePart.length > 0) {
-				currentLine.children.push(textLines[textLines.length - 1]);
+				currentScanLine.children.push(textLines[textLines.length - 1]);
 			}
 		}
 
@@ -235,44 +237,44 @@ const makeLinenum = (() => {
 	function traverseElement(
 		element: Element,
 		lines: Line[],
-		currentLine: CurrentLine,
+		currentScanLine: CurrentScanLine,
 		wrapperStack: Wrapper[],
 		options: MakeLinenumOptions,
 	): void {
 		const wrapperStartLine = lines.length;
-		const wrapperStartChildIndex = currentLine.children.length;
+		const wrapperStartChildIndex = currentScanLine.children.length;
 		wrapperStack.push({ original: element, idUsed: false });
 
 		const startNum = readStartNumAttribute(element, options);
 		const skip = readSkipAttribute(element, options);
 		if (skip !== null) {
-			currentLine.num += skip - 1;
-			currentLine.showNum = false;
+			currentScanLine.num += skip - 1;
+			currentScanLine.showNum = false;
 			if (startNum !== null) {
-				currentLine.num = startNum - 1;
+				currentScanLine.num = startNum - 1;
 			}
 		} else {
 			if (startNum !== null) {
-				currentLine.num = startNum;
+				currentScanLine.num = startNum;
 			}
 		}
 
-		traverse(element, lines, currentLine, wrapperStack, options);
+		traverse(element, lines, currentScanLine, wrapperStack, options);
 
 		const wrappedChildren: (string | Node)[] = [];
 		if (lines.length === wrapperStartLine) {
-			wrappedChildren.push(...currentLine.children.slice(wrapperStartChildIndex));
+			wrappedChildren.push(...currentScanLine.children.slice(wrapperStartChildIndex));
 		} else if (lines.length > wrapperStartLine) {
 			// The earlier lines have already been wrapped, so we only need to wrap from the start of the current line
-			wrappedChildren.push(...currentLine.children);
+			wrappedChildren.push(...currentScanLine.children);
 		} else {
 			throw new Error(`line count decreased after traversing element: ${element}`);
 		}
 		if (wrappedChildren.length > 0) {
 			const wrapperElement = makeWrapper(wrapperStack[wrapperStack.length - 1], options);
 			wrapperElement.append(...wrappedChildren);
-			currentLine.children.length -= wrappedChildren.length;
-			currentLine.children.push(wrapperElement);
+			currentScanLine.children.length -= wrappedChildren.length;
+			currentScanLine.children.push(wrapperElement);
 		}
 
 		wrapperStack.pop();
@@ -281,7 +283,7 @@ const makeLinenum = (() => {
 	function traverse(
 		container: Element,
 		lines: Line[],
-		currentLine: CurrentLine,
+		currentLine: CurrentScanLine,
 		wrapperStack: Wrapper[],
 		options: MakeLinenumOptions,
 	): void {
@@ -338,15 +340,15 @@ const makeLinenum = (() => {
 
 		const lines: Line[] = [];
 		const lineWrapperStack: Wrapper[] = [];
-		const currentLine: CurrentLine = {
+		const currentScanLine: CurrentScanLine = {
 			children: [],
 			showNum: true,
 			num: readStartNumAttribute(container, options) ?? options.defaultStartNum,
 		};
 
-		traverse(container, lines, currentLine, lineWrapperStack, options);
-		if (currentLine.children.length > 0) {
-			lines.push(makeLine(currentLine, lineWrapperStack, options));
+		traverse(container, lines, currentScanLine, lineWrapperStack, options);
+		if (currentScanLine.children.length > 0) {
+			lines.push(makeLine(currentScanLine, lineWrapperStack, options));
 		}
 
 		return lines;
