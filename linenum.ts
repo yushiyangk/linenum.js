@@ -102,12 +102,19 @@ const makeLinenum = (() => {
 	--ln-line-background: inherit;
 	--ln-insertion-background: lightgreen;
 	--ln-deletion-background: lightsalmon;
-	--ln-margin-before: 0;
-	--ln-margin-after: 0;
-	--ln-margin-vertical: 0;
-	--ln-padding-before: 0;
-	--ln-padding-after: 0;
-	--ln-padding-vertical: 0;
+
+	--ln-num-margin-before: 0;
+	--ln-num-margin-after: 0;
+	--ln-num-margin-vertical: 0;
+	--ln-num-padding-before: 0;
+	--ln-num-padding-after: 0;
+	--ln-num-padding-vertical: 0;
+	--ln-line-margin-before: 0;
+	--ln-line-margin-after: 0;
+	--ln-line-margin-vertical: 0;
+	--ln-line-padding-before: 0;
+	--ln-line-padding-after: 0;
+	--ln-line-padding-vertical: 0;
 
 	--ln-num-spacing: 1em;
 	--ln-diff-num-spacing: 0.5em;
@@ -130,18 +137,18 @@ const makeLinenum = (() => {
 .${options.lineNumClassName}, .${options.origNumClassName}, .${options.diffSignClassName} {
 	display: block;
 
-	margin-left: var(--ln-margin-before);
-	margin-inline-start: var(--ln-margin-before);
-	margin-right: var(--ln-margin-after);
-	margin-inline-end: var(--ln-margin-after);
-	margin-top: var(--ln-margin-vertical);
-	margin-bottom: var(--ln-margin-vertical);
-	padding-left: var(--ln-padding-before);
-	padding-inline-start: var(--ln-padding-before);
-	padding-right: var(--ln-padding-after);
-	padding-inline-end: var(--ln-padding-after);
-	padding-top: var(--ln-padding-vertical);
-	padding-bottom: var(--ln-padding-vertical);
+	margin-left: var(--ln-num-margin-before);
+	margin-inline-start: var(--ln-num-margin-before);
+	margin-right: var(--ln-num-margin-after);
+	margin-inline-end: var(--ln-num-margin-after);
+	margin-top: var(--ln-num-margin-vertical);
+	margin-bottom: var(--ln-num-margin-vertical);
+	padding-left: var(--ln-num-padding-before);
+	padding-inline-start: var(--ln-num-padding-before);
+	padding-right: var(--ln-num-padding-after);
+	padding-inline-end: var(--ln-num-padding-after);
+	padding-top: var(--ln-num-padding-vertical);
+	padding-bottom: var(--ln-num-padding-vertical);
 
 	color: var(--ln-num-colour);
 	background-color: var(--ln-num-background);
@@ -164,6 +171,19 @@ const makeLinenum = (() => {
 	display: block;
 
 	grid-column: line;
+
+	margin-left: var(--ln-line-margin-before);
+	margin-inline-start: var(--ln-line-margin-before);
+	margin-right: var(--ln-line-margin-after);
+	margin-inline-end: var(--ln-line-margin-after);
+	margin-top: var(--ln-line-margin-vertical);
+	margin-bottom: var(--ln-line-margin-vertical);
+	padding-left: var(--ln-line-padding-before);
+	padding-inline-start: var(--ln-line-padding-before);
+	padding-right: var(--ln-line-padding-after);
+	padding-inline-end: var(--ln-line-padding-after);
+	padding-top: var(--ln-line-padding-vertical);
+	padding-bottom: var(--ln-line-padding-vertical);
 
 	color: var(--ln-line-colour);
 	background-color: var(--ln-line-background);
