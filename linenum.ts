@@ -202,14 +202,18 @@ const makeLinenum = (() => {
 	}
 
 
-	function readIntAttribute(element: Element, attributeName: string, defaultValue: number | null = null) {
+	function readIntAttribute(element: Element, attributeName: string, clampNegative: boolean = false) {
 		const value = element.getAttribute(attributeName);
 		if (value !== null) {
 			const intValue = parseInt(value, 10);
 			if (!Number.isNaN(intValue)) {
-				return intValue;
+				if (clampNegative && intValue < 0) {
+					return null;
+				} else {
+					return intValue;
+				}
 			} else {
-				return defaultValue;
+				return null;
 			}
 		}
 		return null;
@@ -373,11 +377,11 @@ const makeLinenum = (() => {
 
 		const startNum = readIntAttribute(element, options.startNumDataAttribute);
 		const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
-		const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumLinesCountDataAttribute);
-		const skip = readIntAttribute(element, options.skipDataAttribute, 0);
-		let insertedLinesCount = readIntAttribute(element, options.insertedLinesCountDataAttribute);
-		let deletedLinesCount = readIntAttribute(element, options.deletedLinesCountDataAttribute);
+		const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumLinesCountDataAttribute, true);
+		const skip = readIntAttribute(element, options.skipDataAttribute);
 
+		let insertedLinesCount = readIntAttribute(element, options.insertedLinesCountDataAttribute, true);
+		let deletedLinesCount = readIntAttribute(element, options.deletedLinesCountDataAttribute, true);
 		if (insertedLinesCount !== null && deletedLinesCount !== null) {
 			console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} and ${options.deletedLinesCountDataAttribute} attributes cannot both be set, ignoring both:`, element);
 			insertedLinesCount = null;
@@ -394,9 +398,15 @@ const makeLinenum = (() => {
 			currentScanLine.hiddenNumLinesCount = hiddenNumLinesCount;
 		}
 		if (insertedLinesCount !== null) {
+			if (currentScanLine.diffLinesCount > 0 && currentScanLine.diff !== DiffLineType.Insertion) {
+				console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} attribute set on a line that was previously set to a different DiffLineType, overriding previous:`, element);
+			}
 			currentScanLine.diffLinesCount = insertedLinesCount;
 			currentScanLine.diff = DiffLineType.Insertion;
 		} else if (deletedLinesCount !== null) {
+			if (currentScanLine.diffLinesCount > 0 && currentScanLine.diff !== DiffLineType.Insertion) {
+				console.warn(`linenum.js:traverseElement: ${options.deletedLinesCountDataAttribute} attribute set on a line that was previously set to a different DiffLineType, overriding previous:`, element);
+			}
 			currentScanLine.diffLinesCount = deletedLinesCount;
 			currentScanLine.diff = DiffLineType.Deletion;
 		}
@@ -487,14 +497,34 @@ const makeLinenum = (() => {
 		const lines: LineArray = new LineArray();
 		const lineWrapperStack: Wrapper[] = [];
 		const startNum = readIntAttribute(container, options.startNumDataAttribute) ?? options.defaultStartNum;
-		const origStartNum = readIntAttribute(container, options.origNumDataAttribute) ?? startNum;
+		const origStartNum = readIntAttribute(container, options.origNumDataAttribute);
+		const hiddenNumLinesCount = readIntAttribute(container, options.hiddenNumLinesCountDataAttribute, true);
+		const skip = readIntAttribute(container, options.skipDataAttribute) ?? 0;
+
+		let insertedLinesCount = readIntAttribute(container, options.insertedLinesCountDataAttribute, true);
+		let deletedLinesCount = readIntAttribute(container, options.deletedLinesCountDataAttribute, true);
+		if (insertedLinesCount !== null && deletedLinesCount !== null) {
+			console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} and ${options.deletedLinesCountDataAttribute} attributes cannot both be set, ignoring both:`, container);
+			insertedLinesCount = null;
+			deletedLinesCount = null;
+		}
+		let diffLinesCount = 0;
+		let diff: DiffLineType | null = null;
+		if (insertedLinesCount !== null) {
+			diffLinesCount = insertedLinesCount;
+			diff = DiffLineType.Insertion;
+		} else if (deletedLinesCount !== null) {
+			diffLinesCount = deletedLinesCount;
+			diff = DiffLineType.Deletion;
+		}
+
 		const currentScanLine: ScanLine = {
 			children: [],
-			num: startNum,
-			origNum: origStartNum,
-			hiddenNumLinesCount: 0,
-			diffLinesCount: 0,
-			diff: null,
+			num: startNum + skip,
+			origNum: (origStartNum ?? startNum) + skip,
+			hiddenNumLinesCount: hiddenNumLinesCount ?? 0,
+			diffLinesCount: diffLinesCount,
+			diff: diff,
 		};
 
 		traverse(container, lines, currentScanLine, lineWrapperStack, options);
