@@ -519,8 +519,6 @@ const makeLinenum = (() => {
 
 		const lineElements: HTMLSpanElement[] = [];
 		const numElements: HTMLSpanElement[] = [];
-		const origNumElements: HTMLSpanElement[] = [];
-		const diffSignElements: HTMLSpanElement[] = [];
 
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
@@ -565,12 +563,11 @@ const makeLinenum = (() => {
 					diffSignElement.append("−");
 				}
 
-				origNumElements.push(origNumElement);
-				diffSignElements.push(diffSignElement);
+				numElements.push(origNumElement, diffSignElement);
 			}
 		}
 
-		container.append(...origNumElements, ...numElements, ...diffSignElements, ...lineElements);
+		container.append(...numElements, ...lineElements);
 	}
 
 	return (

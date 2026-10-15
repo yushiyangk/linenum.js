@@ -405,8 +405,6 @@ const makeLinenum = (() => {
         container.innerHTML = "";
         const lineElements = [];
         const numElements = [];
-        const origNumElements = [];
-        const diffSignElements = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const br = document.createElement("br");
@@ -446,11 +444,10 @@ const makeLinenum = (() => {
                 else if (line.diff === DiffLineType.Deletion) {
                     diffSignElement.append("−");
                 }
-                origNumElements.push(origNumElement);
-                diffSignElements.push(diffSignElement);
+                numElements.push(origNumElement, diffSignElement);
             }
         }
-        container.append(...origNumElements, ...numElements, ...diffSignElements, ...lineElements);
+        container.append(...numElements, ...lineElements);
     }
     return (preformattedElements, stylesheetParent, options) => {
         const reifiedOptions = reifyOptions(options, defaultMakeLinenumOptions);
