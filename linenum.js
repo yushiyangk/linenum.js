@@ -1,6 +1,6 @@
 "use strict";
 // linenum.js
-// version 0.3.1
+// version 0.4
 // Yu Shiyang <yu.shiyang@gnayihs.uy>
 // Browser compatibility: ES6
 // This includes support for all current browsers with any significant market share (at least 0.1%)
@@ -13,6 +13,7 @@ const makeLinenum = (() => {
         insertedLineClassName: "ln-ins",
         deletedLineClassName: "ln-del",
         startNumDataAttribute: "data-ln-start",
+        hiddenNumLinesCountDataAttribute: "data-ln-hide",
         skipDataAttribute: "data-ln-skip",
         diffContainerClassName: "ln-diff",
         origNumClassName: "ln-orig",
@@ -195,7 +196,10 @@ const makeLinenum = (() => {
             currentScanLine.num += 1;
             currentScanLine.origNum += 1;
         }
-        currentScanLine.showNum = true;
+        currentScanLine.hiddenNumLinesCount -= 1;
+        if (currentScanLine.hiddenNumLinesCount <= 0) {
+            currentScanLine.hiddenNumLinesCount = 0;
+        }
         currentScanLine.diffLinesCount -= 1;
         if (currentScanLine.diffLinesCount <= 0) {
             currentScanLine.diffLinesCount = 0;
@@ -237,7 +241,7 @@ const makeLinenum = (() => {
             element: span,
             num: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Deletion ? null : currentScanLine.num,
             origNum: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Insertion ? null : currentScanLine.origNum,
-            showNum: currentScanLine.showNum,
+            showNum: !(currentScanLine.hiddenNumLinesCount > 0),
             diff: currentScanLine.diffLinesCount > 0 ? currentScanLine.diff : null,
         };
         lines.push(line);
@@ -276,8 +280,9 @@ const makeLinenum = (() => {
             idUsed: false,
         });
         const startNum = readIntAttribute(element, options.startNumDataAttribute);
-        const skip = readIntAttribute(element, options.skipDataAttribute, 0);
         const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
+        const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumLinesCountDataAttribute);
+        const skip = readIntAttribute(element, options.skipDataAttribute, 0);
         let insertedLinesCount = readIntAttribute(element, options.insertedLinesCountDataAttribute);
         let deletedLinesCount = readIntAttribute(element, options.deletedLinesCountDataAttribute);
         if (insertedLinesCount !== null && deletedLinesCount !== null) {
@@ -285,44 +290,26 @@ const makeLinenum = (() => {
             insertedLinesCount = null;
             deletedLinesCount = null;
         }
-        if (skip !== null) {
-            currentScanLine.showNum = false;
-            if (startNum !== null) {
-                currentScanLine.num = startNum - 1;
-            }
-            else {
-                currentScanLine.num += skip - 1;
-            }
-            if (originalStartNum !== null) {
-                currentScanLine.origNum = originalStartNum - 1;
-            }
-            else if (currentScanLine.origNum !== undefined) {
-                currentScanLine.origNum += skip - 1;
-            }
-            if (insertedLinesCount !== null) {
-                currentScanLine.diffLinesCount = insertedLinesCount - skip + 1;
-                currentScanLine.diff = DiffLineType.Insertion;
-            }
-            else if (deletedLinesCount !== null) {
-                currentScanLine.diffLinesCount = deletedLinesCount - skip + 1;
-                currentScanLine.diff = DiffLineType.Deletion;
-            }
+        if (startNum !== null) {
+            currentScanLine.num = startNum;
         }
-        else {
-            if (startNum !== null) {
-                currentScanLine.num = startNum;
-            }
-            if (originalStartNum !== null) {
-                currentScanLine.origNum = originalStartNum;
-            }
-            if (insertedLinesCount !== null) {
-                currentScanLine.diffLinesCount = insertedLinesCount;
-                currentScanLine.diff = DiffLineType.Insertion;
-            }
-            else if (deletedLinesCount !== null) {
-                currentScanLine.diffLinesCount = deletedLinesCount;
-                currentScanLine.diff = DiffLineType.Deletion;
-            }
+        if (originalStartNum !== null) {
+            currentScanLine.origNum = originalStartNum;
+        }
+        if (hiddenNumLinesCount !== null) {
+            currentScanLine.hiddenNumLinesCount = hiddenNumLinesCount;
+        }
+        if (insertedLinesCount !== null) {
+            currentScanLine.diffLinesCount = insertedLinesCount;
+            currentScanLine.diff = DiffLineType.Insertion;
+        }
+        else if (deletedLinesCount !== null) {
+            currentScanLine.diffLinesCount = deletedLinesCount;
+            currentScanLine.diff = DiffLineType.Deletion;
+        }
+        if (skip !== null) {
+            currentScanLine.num += skip;
+            currentScanLine.origNum += skip;
         }
         traverse(element, lines, currentScanLine, wrapperStack, options);
         const wrappedChildren = [];
@@ -392,11 +379,12 @@ const makeLinenum = (() => {
         const lines = new LineArray();
         const lineWrapperStack = [];
         const startNum = (_a = readIntAttribute(container, options.startNumDataAttribute)) !== null && _a !== void 0 ? _a : options.defaultStartNum;
+        const origStartNum = (_b = readIntAttribute(container, options.origNumDataAttribute)) !== null && _b !== void 0 ? _b : startNum;
         const currentScanLine = {
             children: [],
-            showNum: true,
             num: startNum,
-            origNum: (_b = readIntAttribute(container, options.origNumDataAttribute)) !== null && _b !== void 0 ? _b : startNum,
+            origNum: origStartNum,
+            hiddenNumLinesCount: 0,
             diffLinesCount: 0,
             diff: null,
         };
