@@ -1,5 +1,16 @@
 ## Changelog
 
+### 0.4
+
+#### Added
+
+- Ability to hide line numbers for more than one line at a time, using the `data-ln-hide` data attribute
+
+#### Changed
+
+- `data-ln-skip` now purely increments the current line number, and no longer causes the current line's number to be hidden
+- Line numbers and symbols for diffs that are in different columns are now laid out in an interleaved manner, rather than one column at a time (no visible difference)
+
 ### 0.3.1
 
 #### Fixed
