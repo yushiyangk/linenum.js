@@ -13,6 +13,7 @@ const makeLinenum = (() => {
         insertedLineClassName: "ln-ins",
         deletedLineClassName: "ln-del",
         startNumDataAttribute: "data-ln-start",
+        skipLineCountDataAttribute: "data-ln-skip",
         hiddenNumCountDataAttribute: "data-ln-hide",
         addNumDataAttribute: "data-ln-add",
         diffContainerClassName: "ln-diff",
@@ -28,10 +29,12 @@ const makeLinenum = (() => {
         }
         for (const dataAttributeKey of [
             "startNumDataAttribute",
+            "skipLineCountDataAttribute",
+            "hiddenNumCountDataAttribute",
             "addNumDataAttribute",
             "origStartNumDataAttribute",
-            "insertedLinesCountDataAttribute",
-            "deletedLinesCountDataAttribute",
+            "insertedLineCountDataAttribute",
+            "deletedLineCountDataAttribute",
         ]) {
             const dataAttribute = options[dataAttributeKey];
             if (!dataAttribute.startsWith("data-")) {
@@ -191,6 +194,10 @@ const makeLinenum = (() => {
     }
     function advanceCurrentScanLine(currentScanLine) {
         currentScanLine.children.length = 0;
+        if (currentScanLine.skipLineCount > 0) {
+            currentScanLine.skipLineCount -= 1;
+            return;
+        }
         currentScanLine.hiddenNumCount -= 1;
         if (currentScanLine.hiddenNumCount <= 0) {
             currentScanLine.hiddenNumCount = 0;
@@ -248,12 +255,12 @@ const makeLinenum = (() => {
             currentWrapper = wrapperElement;
         }
         currentWrapper.append(...currentScanLine.children.slice(currentScanChildIndex));
+        const hideNum = (currentScanLine.hiddenNumCount > 0 || currentScanLine.skipLineCount > 0);
         const currentDiffLineGroup = currentScanLine.diffLineGroupStack.length > 0 ? currentScanLine.diffLineGroupStack[currentScanLine.diffLineGroupStack.length - 1] : null;
         const line = {
             element: span,
-            num: (currentDiffLineGroup === null || currentDiffLineGroup === void 0 ? void 0 : currentDiffLineGroup.type) === DiffLineType.Deletion ? null : currentScanLine.num,
-            origNum: (currentDiffLineGroup === null || currentDiffLineGroup === void 0 ? void 0 : currentDiffLineGroup.type) === DiffLineType.Insertion ? null : currentScanLine.origNum,
-            showNum: !(currentScanLine.hiddenNumCount > 0),
+            num: (hideNum || (currentDiffLineGroup === null || currentDiffLineGroup === void 0 ? void 0 : currentDiffLineGroup.type) === DiffLineType.Deletion) ? null : currentScanLine.num,
+            origNum: (hideNum || (currentDiffLineGroup === null || currentDiffLineGroup === void 0 ? void 0 : currentDiffLineGroup.type) === DiffLineType.Insertion) ? null : currentScanLine.origNum,
             diff: (_a = currentDiffLineGroup === null || currentDiffLineGroup === void 0 ? void 0 : currentDiffLineGroup.type) !== null && _a !== void 0 ? _a : null,
         };
         lines.push(line);
@@ -315,6 +322,7 @@ const makeLinenum = (() => {
         });
         const startNum = readIntAttribute(element, options.startNumDataAttribute);
         const origStartNum = readIntAttribute(element, options.origStartNumDataAttribute);
+        const skipLineCount = readIntAttribute(element, options.skipLineCountDataAttribute, true);
         const hiddenNumCount = readIntAttribute(element, options.hiddenNumCountDataAttribute, true);
         const addNum = readIntAttribute(element, options.addNumDataAttribute);
         let insertedLineCount = readIntAttribute(element, options.insertedLineCountDataAttribute, true);
@@ -329,6 +337,9 @@ const makeLinenum = (() => {
         }
         if (origStartNum !== null) {
             currentScanLine.origNum = origStartNum;
+        }
+        if (skipLineCount !== null) {
+            currentScanLine.skipLineCount = skipLineCount;
         }
         if (hiddenNumCount !== null) {
             currentScanLine.hiddenNumCount = hiddenNumCount;
@@ -416,6 +427,7 @@ const makeLinenum = (() => {
         const lineWrapperStack = [];
         const startNum = (_a = readIntAttribute(container, options.startNumDataAttribute)) !== null && _a !== void 0 ? _a : options.defaultStartNum;
         const origStartNum = readIntAttribute(container, options.origStartNumDataAttribute);
+        const skipLineCount = readIntAttribute(container, options.skipLineCountDataAttribute, true);
         const hiddenNumCount = readIntAttribute(container, options.hiddenNumCountDataAttribute, true);
         const addNum = (_b = readIntAttribute(container, options.addNumDataAttribute)) !== null && _b !== void 0 ? _b : 0;
         let insertedLinesCount = readIntAttribute(container, options.insertedLineCountDataAttribute, true);
@@ -442,6 +454,7 @@ const makeLinenum = (() => {
             children: [],
             num: startNum + addNum,
             origNum: (origStartNum !== null && origStartNum !== void 0 ? origStartNum : startNum) + addNum,
+            skipLineCount: skipLineCount !== null && skipLineCount !== void 0 ? skipLineCount : 0,
             hiddenNumCount: hiddenNumCount !== null && hiddenNumCount !== void 0 ? hiddenNumCount : 0,
             diffLineGroupStack: diffLineGroupStack,
         };
@@ -476,22 +489,16 @@ const makeLinenum = (() => {
             }
             const numElement = document.createElement("span");
             numElement.classList.add(options.lineNumClassName);
-            if (line.showNum) {
-                if (!lines.hasDiff || line.diff !== DiffLineType.Deletion) {
-                    if (line.num !== null) {
-                        numElement.append(line.num.toString());
-                    }
-                }
+            if (line.num !== null) {
+                numElement.append(line.num.toString());
             }
             lineElements.push(line.element);
             numElements.push(numElement);
             if (lines.hasDiff) {
                 const origNumElement = document.createElement("span");
                 origNumElement.classList.add(options.origNumClassName);
-                if (line.showNum) {
-                    if (line.diff !== DiffLineType.Insertion && line.origNum !== null) {
-                        origNumElement.append(line.origNum.toString());
-                    }
+                if (line.origNum !== null) {
+                    origNumElement.append(line.origNum.toString());
                 }
                 const diffSignElement = document.createElement("span");
                 diffSignElement.classList.add(options.diffSignClassName);
