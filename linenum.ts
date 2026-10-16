@@ -247,7 +247,7 @@ const makeLinenum = (() => {
 	}
 
 	interface DiffLineGroup {
-		linesCount: number,
+		lineCount: number,
 		type: DiffLineType,
 	}
 
@@ -282,8 +282,8 @@ const makeLinenum = (() => {
 			} else {
 				throw new Error(`unknown diff line type: ${currentDiffLineGroup.type}`);
 			}
-			currentDiffLineGroup.linesCount -= 1;
-			if (currentDiffLineGroup.linesCount <= 0) {
+			currentDiffLineGroup.lineCount -= 1;
+			if (currentDiffLineGroup.lineCount <= 0) {
 				currentScanLine.diffLineGroupStack.pop();
 			}
 		} else {
@@ -379,29 +379,29 @@ const makeLinenum = (() => {
 
 	function updateDiffLineGroupStack(
 		element: Element,
-		diffLinesCount: number,
+		diffLineCount: number,
 		diffLineType: DiffLineType,
 		currentScanLine: ScanLine,
 		attributeNameOfDiffLineType: Record<DiffLineType, string>,
 	) {
-		let diffLinesOverrideRemainder = diffLinesCount;
-		while (currentScanLine.diffLineGroupStack.length > 0 && diffLinesOverrideRemainder > 0) {
+		let remainingOverrideCount = diffLineCount;
+		while (currentScanLine.diffLineGroupStack.length > 0 && remainingOverrideCount > 0) {
 			const currentDiffLineGroup = currentScanLine.diffLineGroupStack[currentScanLine.diffLineGroupStack.length - 1];
 			if (currentDiffLineGroup.type !== diffLineType) {
-				const overrideLineNum = currentScanLine.num + diffLinesCount - diffLinesOverrideRemainder;
+				const overrideLineNum = currentScanLine.num + diffLineCount - remainingOverrideCount;
 				console.warn(`linenum.js:updateDiffLineGroupStack: ${attributeNameOfDiffLineType[diffLineType]} attribute set on a line that is already set with ${attributeNameOfDiffLineType[currentDiffLineGroup.type]}, overriding: line ${overrideLineNum},`, element);
 			}
-			if (currentDiffLineGroup.linesCount <= diffLinesOverrideRemainder) {
-				diffLinesOverrideRemainder -= currentDiffLineGroup.linesCount;
+			if (currentDiffLineGroup.lineCount <= remainingOverrideCount) {
+				remainingOverrideCount -= currentDiffLineGroup.lineCount;
 				currentScanLine.diffLineGroupStack.pop();
 			} else {
-				currentDiffLineGroup.linesCount -= diffLinesOverrideRemainder;
-				diffLinesOverrideRemainder = 0;
+				currentDiffLineGroup.lineCount -= remainingOverrideCount;
+				remainingOverrideCount = 0;
 			}
 		}
 		currentScanLine.diffLineGroupStack.push({
 			type: diffLineType,
-			linesCount: diffLinesCount,
+			lineCount: diffLineCount,
 		});
 	}
 
@@ -549,22 +549,22 @@ const makeLinenum = (() => {
 		const hiddenNumCount = readIntAttribute(container, options.hiddenNumCountDataAttribute, true);
 		const addNum = readIntAttribute(container, options.addNumDataAttribute) ?? 0;
 
-		let insertedLinesCount = readIntAttribute(container, options.insertedLineCountDataAttribute, true);
-		let deletedLinesCount = readIntAttribute(container, options.deletedLineCountDataAttribute, true);
-		if (insertedLinesCount !== null && deletedLinesCount !== null) {
+		let insertedLineCount = readIntAttribute(container, options.insertedLineCountDataAttribute, true);
+		let deletedLineCount = readIntAttribute(container, options.deletedLineCountDataAttribute, true);
+		if (insertedLineCount !== null && deletedLineCount !== null) {
 			console.warn(`linenum.js:traverseElement: ${options.insertedLineCountDataAttribute} and ${options.deletedLineCountDataAttribute} attributes cannot both be set, ignoring both:`, container);
-			insertedLinesCount = null;
-			deletedLinesCount = null;
+			insertedLineCount = null;
+			deletedLineCount = null;
 		}
-		const diffLineGroupStack = [];
-		if (insertedLinesCount !== null) {
+		const diffLineGroupStack: DiffLineGroup[] = [];
+		if (insertedLineCount !== null) {
 			diffLineGroupStack.push({
-				linesCount: insertedLinesCount,
+				lineCount: insertedLineCount,
 				type: DiffLineType.Insertion,
 			})
-		} else if (deletedLinesCount !== null) {
+		} else if (deletedLineCount !== null) {
 			diffLineGroupStack.push({
-				linesCount: deletedLinesCount,
+				lineCount: deletedLineCount,
 				type: DiffLineType.Deletion,
 			})
 		}
