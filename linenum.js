@@ -191,24 +191,29 @@ const makeLinenum = (() => {
     }
     function advanceCurrentScanLine(currentScanLine) {
         currentScanLine.children.length = 0;
-        if (currentScanLine.diff === DiffLineType.Insertion && currentScanLine.diffLinesCount > 0) {
-            currentScanLine.num += 1;
-        }
-        else if (currentScanLine.diff === DiffLineType.Deletion && currentScanLine.diffLinesCount > 0) {
-            currentScanLine.origNum += 1;
-        }
-        else {
-            currentScanLine.num += 1;
-            currentScanLine.origNum += 1;
-        }
         currentScanLine.hiddenNumLinesCount -= 1;
         if (currentScanLine.hiddenNumLinesCount <= 0) {
             currentScanLine.hiddenNumLinesCount = 0;
         }
-        currentScanLine.diffLinesCount -= 1;
-        if (currentScanLine.diffLinesCount <= 0) {
-            currentScanLine.diffLinesCount = 0;
-            currentScanLine.diff = null;
+        if (currentScanLine.diffLinesStack.length > 0) {
+            const currentDiffLineGroup = currentScanLine.diffLinesStack[currentScanLine.diffLinesStack.length - 1];
+            if (currentDiffLineGroup.type === DiffLineType.Insertion) {
+                currentScanLine.num += 1;
+            }
+            else if (currentDiffLineGroup.type === DiffLineType.Deletion) {
+                currentScanLine.origNum += 1;
+            }
+            else {
+                throw new Error(`unknown diff line type: ${currentDiffLineGroup.type}`);
+            }
+            currentDiffLineGroup.linesCount -= 1;
+            if (currentDiffLineGroup.linesCount <= 0) {
+                currentScanLine.diffLinesStack.pop();
+            }
+        }
+        else {
+            currentScanLine.num += 1;
+            currentScanLine.origNum += 1;
         }
     }
     function makeWrapperElement(wrapper, options) {
@@ -222,6 +227,7 @@ const makeLinenum = (() => {
         return wrapperElement;
     }
     function addLine(lines, currentScanLine, wrapperStack, options) {
+        var _a;
         const span = document.createElement("span");
         span.classList.add(options.lineClassName);
         let currentWrapper = span;
@@ -242,12 +248,13 @@ const makeLinenum = (() => {
             currentWrapper = wrapperElement;
         }
         currentWrapper.append(...currentScanLine.children.slice(currentScanChildIndex));
+        const currentDiffLineGroup = currentScanLine.diffLinesStack.length > 0 ? currentScanLine.diffLinesStack[currentScanLine.diffLinesStack.length - 1] : null;
         const line = {
             element: span,
-            num: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Deletion ? null : currentScanLine.num,
-            origNum: currentScanLine.diffLinesCount > 0 && currentScanLine.diff === DiffLineType.Insertion ? null : currentScanLine.origNum,
+            num: (currentDiffLineGroup === null || currentDiffLineGroup === void 0 ? void 0 : currentDiffLineGroup.type) === DiffLineType.Deletion ? null : currentScanLine.num,
+            origNum: (currentDiffLineGroup === null || currentDiffLineGroup === void 0 ? void 0 : currentDiffLineGroup.type) === DiffLineType.Insertion ? null : currentScanLine.origNum,
             showNum: !(currentScanLine.hiddenNumLinesCount > 0),
-            diff: currentScanLine.diffLinesCount > 0 ? currentScanLine.diff : null,
+            diff: (_a = currentDiffLineGroup === null || currentDiffLineGroup === void 0 ? void 0 : currentDiffLineGroup.type) !== null && _a !== void 0 ? _a : null,
         };
         lines.push(line);
         if (line.diff !== null) {
@@ -274,6 +281,28 @@ const makeLinenum = (() => {
             }
         }
         return;
+    }
+    function updateDiffLinesStack(element, diffLinesCount, diffLineType, currentScanLine, attributeNameOfDiffLineType) {
+        let diffLinesOverrideRemainder = diffLinesCount;
+        while (currentScanLine.diffLinesStack.length > 0 && diffLinesOverrideRemainder > 0) {
+            const currentDiffLineGroup = currentScanLine.diffLinesStack[currentScanLine.diffLinesStack.length - 1];
+            if (currentDiffLineGroup.type !== diffLineType) {
+                const overrideLineNum = currentScanLine.num + diffLinesCount - diffLinesOverrideRemainder;
+                console.warn(`linenum.js:updateDiffLinesStack: ${attributeNameOfDiffLineType[diffLineType]} attribute set on a line that is already set with ${attributeNameOfDiffLineType[currentDiffLineGroup.type]}, overriding: line ${overrideLineNum},`, element);
+            }
+            if (currentDiffLineGroup.linesCount <= diffLinesOverrideRemainder) {
+                diffLinesOverrideRemainder -= currentDiffLineGroup.linesCount;
+                currentScanLine.diffLinesStack.pop();
+            }
+            else {
+                currentDiffLineGroup.linesCount -= diffLinesOverrideRemainder;
+                diffLinesOverrideRemainder = 0;
+            }
+        }
+        currentScanLine.diffLinesStack.push({
+            type: diffLineType,
+            linesCount: diffLinesCount,
+        });
     }
     function traverseElement(element, lines, currentScanLine, wrapperStack, options) {
         const elementStartScanLine = lines.length;
@@ -304,19 +333,15 @@ const makeLinenum = (() => {
         if (hiddenNumLinesCount !== null) {
             currentScanLine.hiddenNumLinesCount = hiddenNumLinesCount;
         }
+        const attributeNameOfDiffLineType = {
+            [DiffLineType.Insertion]: options.insertedLinesCountDataAttribute,
+            [DiffLineType.Deletion]: options.deletedLinesCountDataAttribute,
+        };
         if (insertedLinesCount !== null) {
-            if (currentScanLine.diffLinesCount > 0 && currentScanLine.diff !== DiffLineType.Insertion) {
-                console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} attribute set on a line that was previously set to a different DiffLineType, overriding previous:`, element);
-            }
-            currentScanLine.diffLinesCount = insertedLinesCount;
-            currentScanLine.diff = DiffLineType.Insertion;
+            updateDiffLinesStack(element, insertedLinesCount, DiffLineType.Insertion, currentScanLine, attributeNameOfDiffLineType);
         }
         else if (deletedLinesCount !== null) {
-            if (currentScanLine.diffLinesCount > 0 && currentScanLine.diff !== DiffLineType.Insertion) {
-                console.warn(`linenum.js:traverseElement: ${options.deletedLinesCountDataAttribute} attribute set on a line that was previously set to a different DiffLineType, overriding previous:`, element);
-            }
-            currentScanLine.diffLinesCount = deletedLinesCount;
-            currentScanLine.diff = DiffLineType.Deletion;
+            updateDiffLinesStack(element, deletedLinesCount, DiffLineType.Deletion, currentScanLine, attributeNameOfDiffLineType);
         }
         if (skip !== null) {
             currentScanLine.num += skip;
@@ -400,23 +425,25 @@ const makeLinenum = (() => {
             insertedLinesCount = null;
             deletedLinesCount = null;
         }
-        let diffLinesCount = 0;
-        let diff = null;
+        const diffLinesStack = [];
         if (insertedLinesCount !== null) {
-            diffLinesCount = insertedLinesCount;
-            diff = DiffLineType.Insertion;
+            diffLinesStack.push({
+                linesCount: insertedLinesCount,
+                type: DiffLineType.Insertion,
+            });
         }
         else if (deletedLinesCount !== null) {
-            diffLinesCount = deletedLinesCount;
-            diff = DiffLineType.Deletion;
+            diffLinesStack.push({
+                linesCount: deletedLinesCount,
+                type: DiffLineType.Deletion,
+            });
         }
         const currentScanLine = {
             children: [],
             num: startNum + skip,
             origNum: (origStartNum !== null && origStartNum !== void 0 ? origStartNum : startNum) + skip,
             hiddenNumLinesCount: hiddenNumLinesCount !== null && hiddenNumLinesCount !== void 0 ? hiddenNumLinesCount : 0,
-            diffLinesCount: diffLinesCount,
-            diff: diff,
+            diffLinesStack: diffLinesStack,
         };
         traverse(container, lines, currentScanLine, lineWrapperStack, options);
         if (currentScanLine.children.length > 0) {
