@@ -1,5 +1,27 @@
 ## Changelog
 
+### 0.4
+
+#### Added
+
+- `data-ln-hide` to hide line numbers for one or more lines, but without affecting their incrementation
+- `data-ln-add` to increment the current line number by a given amount (can be negative)
+- Ability to skip more than one line at a time using the `data-ln-skip` data attribute
+	- `data-ln-skip` essentially combines the behaviour of `data-ln-hide` and `data-ln-add`
+	- Any active hidden line group or diff line group will remain active across the skip
+- Added the `hiddenNumCountDataAttribute` and `addNumDataAttribute` options for `makeLinenum`
+
+#### Changed
+
+- Behaviour of overlapping diff line groups
+	- Previously, a later `data-ln-ins` or `data-ln-del` will completely nullify any earlier ones that are still active
+	- Now, a later diff declaration will override an earlier one only for the number of lines the later one is active for
+	- If the earlier declaration extends below the end of the later declaration, the subsequent lines will revert to the earlier declaration instead of reverting to the default non-diff state
+- Renamed the following options for `makeLinenum`:
+	- `skipDataAttribute` to `skipLineCountDataAttribute`
+	- `origNumDataAttribute` to `origStartNumDataAttribute`
+- Line numbers and symbols for diffs that are in different columns are now laid out in an interleaved manner, rather than one column at a time (no visible difference)
+
 ### 0.3.1
 
 #### Fixed
