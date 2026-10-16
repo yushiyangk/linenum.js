@@ -23,7 +23,7 @@ const makeLinenum = (() => {
 		diffContainerClassName: string,
 		origNumClassName: string,
 		diffSignClassName: string,
-		origNumDataAttribute: string,  // if this data attribute is not given, defaults to the same value as startNumDataAttribute
+		origStartNumDataAttribute: string,  // if this data attribute is not given, defaults to the same value as startNumDataAttribute
 		// these data attributes specifies the number of lines, including the current one, to be treated as a diff
 		insertedLineCountDataAttribute: string,
 		deletedLineCountDataAttribute: string,  // deleted lines do not count towards the main line numbering
@@ -41,7 +41,7 @@ const makeLinenum = (() => {
 		diffContainerClassName: "ln-diff",
 		origNumClassName: "ln-orig",
 		diffSignClassName: "ln-sign",
-		origNumDataAttribute: "data-ln-orig",
+		origStartNumDataAttribute: "data-ln-orig",
 		insertedLineCountDataAttribute: "data-ln-ins",
 		deletedLineCountDataAttribute: "data-ln-del",
 	}
@@ -55,7 +55,7 @@ const makeLinenum = (() => {
 		for (const dataAttributeKey of [
 			"startNumDataAttribute",
 			"addNumDataAttribute",
-			"origNumDataAttribute",
+			"origStartNumDataAttribute",
 			"insertedLinesCountDataAttribute",
 			"deletedLinesCountDataAttribute",
 		] as MakeLinenumOptionsStringKey[]) {
@@ -413,7 +413,7 @@ const makeLinenum = (() => {
 		});
 
 		const startNum = readIntAttribute(element, options.startNumDataAttribute);
-		const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
+		const origStartNum = readIntAttribute(element, options.origStartNumDataAttribute);
 		const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumCountDataAttribute, true);
 		const addNum = readIntAttribute(element, options.addNumDataAttribute);
 
@@ -428,8 +428,8 @@ const makeLinenum = (() => {
 		if (startNum !== null) {
 			currentScanLine.num = startNum;
 		}
-		if (originalStartNum !== null) {
-			currentScanLine.origNum = originalStartNum;
+		if (origStartNum !== null) {
+			currentScanLine.origNum = origStartNum;
 		}
 		if (hiddenNumLinesCount !== null) {
 			currentScanLine.hiddenNumLinesCount = hiddenNumLinesCount;
@@ -531,7 +531,7 @@ const makeLinenum = (() => {
 		const lines: LineArray = new LineArray();
 		const lineWrapperStack: Wrapper[] = [];
 		const startNum = readIntAttribute(container, options.startNumDataAttribute) ?? options.defaultStartNum;
-		const origStartNum = readIntAttribute(container, options.origNumDataAttribute);
+		const origStartNum = readIntAttribute(container, options.origStartNumDataAttribute);
 		const hiddenNumLinesCount = readIntAttribute(container, options.hiddenNumCountDataAttribute, true);
 		const addNum = readIntAttribute(container, options.addNumDataAttribute) ?? 0;
 

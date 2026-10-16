@@ -18,7 +18,7 @@ const makeLinenum = (() => {
         diffContainerClassName: "ln-diff",
         origNumClassName: "ln-orig",
         diffSignClassName: "ln-sign",
-        origNumDataAttribute: "data-ln-orig",
+        origStartNumDataAttribute: "data-ln-orig",
         insertedLineCountDataAttribute: "data-ln-ins",
         deletedLineCountDataAttribute: "data-ln-del",
     };
@@ -29,7 +29,7 @@ const makeLinenum = (() => {
         for (const dataAttributeKey of [
             "startNumDataAttribute",
             "addNumDataAttribute",
-            "origNumDataAttribute",
+            "origStartNumDataAttribute",
             "insertedLinesCountDataAttribute",
             "deletedLinesCountDataAttribute",
         ]) {
@@ -314,7 +314,7 @@ const makeLinenum = (() => {
             idUsed: false,
         });
         const startNum = readIntAttribute(element, options.startNumDataAttribute);
-        const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
+        const origStartNum = readIntAttribute(element, options.origStartNumDataAttribute);
         const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumCountDataAttribute, true);
         const addNum = readIntAttribute(element, options.addNumDataAttribute);
         let insertedLinesCount = readIntAttribute(element, options.insertedLineCountDataAttribute, true);
@@ -327,8 +327,8 @@ const makeLinenum = (() => {
         if (startNum !== null) {
             currentScanLine.num = startNum;
         }
-        if (originalStartNum !== null) {
-            currentScanLine.origNum = originalStartNum;
+        if (origStartNum !== null) {
+            currentScanLine.origNum = origStartNum;
         }
         if (hiddenNumLinesCount !== null) {
             currentScanLine.hiddenNumLinesCount = hiddenNumLinesCount;
@@ -415,7 +415,7 @@ const makeLinenum = (() => {
         const lines = new LineArray();
         const lineWrapperStack = [];
         const startNum = (_a = readIntAttribute(container, options.startNumDataAttribute)) !== null && _a !== void 0 ? _a : options.defaultStartNum;
-        const origStartNum = readIntAttribute(container, options.origNumDataAttribute);
+        const origStartNum = readIntAttribute(container, options.origStartNumDataAttribute);
         const hiddenNumLinesCount = readIntAttribute(container, options.hiddenNumCountDataAttribute, true);
         const addNum = (_b = readIntAttribute(container, options.addNumDataAttribute)) !== null && _b !== void 0 ? _b : 0;
         let insertedLinesCount = readIntAttribute(container, options.insertedLineCountDataAttribute, true);
