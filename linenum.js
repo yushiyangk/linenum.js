@@ -289,13 +289,13 @@ const makeLinenum = (() => {
         }
         return;
     }
-    function updateDiffLinesStack(element, diffLinesCount, diffLineType, currentScanLine, attributeNameOfDiffLineType) {
+    function updateDiffLineGroupStack(element, diffLinesCount, diffLineType, currentScanLine, attributeNameOfDiffLineType) {
         let diffLinesOverrideRemainder = diffLinesCount;
         while (currentScanLine.diffLineGroupStack.length > 0 && diffLinesOverrideRemainder > 0) {
             const currentDiffLineGroup = currentScanLine.diffLineGroupStack[currentScanLine.diffLineGroupStack.length - 1];
             if (currentDiffLineGroup.type !== diffLineType) {
                 const overrideLineNum = currentScanLine.num + diffLinesCount - diffLinesOverrideRemainder;
-                console.warn(`linenum.js:updateDiffLinesStack: ${attributeNameOfDiffLineType[diffLineType]} attribute set on a line that is already set with ${attributeNameOfDiffLineType[currentDiffLineGroup.type]}, overriding: line ${overrideLineNum},`, element);
+                console.warn(`linenum.js:updateDiffLineGroupStack: ${attributeNameOfDiffLineType[diffLineType]} attribute set on a line that is already set with ${attributeNameOfDiffLineType[currentDiffLineGroup.type]}, overriding: line ${overrideLineNum},`, element);
             }
             if (currentDiffLineGroup.linesCount <= diffLinesOverrideRemainder) {
                 diffLinesOverrideRemainder -= currentDiffLineGroup.linesCount;
@@ -349,10 +349,10 @@ const makeLinenum = (() => {
             [DiffLineType.Deletion]: options.deletedLineCountDataAttribute,
         };
         if (insertedLineCount !== null) {
-            updateDiffLinesStack(element, insertedLineCount, DiffLineType.Insertion, currentScanLine, attributeNameOfDiffLineType);
+            updateDiffLineGroupStack(element, insertedLineCount, DiffLineType.Insertion, currentScanLine, attributeNameOfDiffLineType);
         }
         else if (deletedLineCount !== null) {
-            updateDiffLinesStack(element, deletedLineCount, DiffLineType.Deletion, currentScanLine, attributeNameOfDiffLineType);
+            updateDiffLineGroupStack(element, deletedLineCount, DiffLineType.Deletion, currentScanLine, attributeNameOfDiffLineType);
         }
         if (addNum !== null) {
             currentScanLine.num += addNum;
