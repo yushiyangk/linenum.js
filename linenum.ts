@@ -17,7 +17,7 @@ const makeLinenum = (() => {
 		deletedLineClassName: string,
 		startNumDataAttribute: string,
 		hiddenNumCountDataAttribute: string,  // this data attribute hides line numbers for the given number of lines, including the current one
-		skipDataAttribute: string,  // this data attribute increments the line number by the given value
+		addNumDataAttribute: string,  // this data attribute increments the line number by the given value (can be negative)
 
 		// for diffs
 		diffContainerClassName: string,
@@ -37,7 +37,7 @@ const makeLinenum = (() => {
 		deletedLineClassName: "ln-del",
 		startNumDataAttribute: "data-ln-start",
 		hiddenNumCountDataAttribute: "data-ln-hide",
-		skipDataAttribute: "data-ln-skip",
+		addNumDataAttribute: "data-ln-add",
 		diffContainerClassName: "ln-diff",
 		origNumClassName: "ln-orig",
 		diffSignClassName: "ln-sign",
@@ -54,7 +54,7 @@ const makeLinenum = (() => {
 		}[keyof MakeLinenumOptions];
 		for (const dataAttributeKey of [
 			"startNumDataAttribute",
-			"skipDataAttribute",
+			"addNumDataAttribute",
 			"origNumDataAttribute",
 			"insertedLinesCountDataAttribute",
 			"deletedLinesCountDataAttribute",
@@ -415,7 +415,7 @@ const makeLinenum = (() => {
 		const startNum = readIntAttribute(element, options.startNumDataAttribute);
 		const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
 		const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumCountDataAttribute, true);
-		const skip = readIntAttribute(element, options.skipDataAttribute);
+		const addNum = readIntAttribute(element, options.addNumDataAttribute);
 
 		let insertedLinesCount = readIntAttribute(element, options.insertedLineCountDataAttribute, true);
 		let deletedLinesCount = readIntAttribute(element, options.deletedLineCountDataAttribute, true);
@@ -445,9 +445,9 @@ const makeLinenum = (() => {
 			updateDiffLinesStack(element, deletedLinesCount, DiffLineType.Deletion, currentScanLine, attributeNameOfDiffLineType);
 		}
 
-		if (skip !== null) {
-			currentScanLine.num += skip;
-			currentScanLine.origNum += skip;
+		if (addNum !== null) {
+			currentScanLine.num += addNum;
+			currentScanLine.origNum += addNum;
 		}
 
 		traverse(element, lines, currentScanLine, wrapperStack, options);
@@ -533,7 +533,7 @@ const makeLinenum = (() => {
 		const startNum = readIntAttribute(container, options.startNumDataAttribute) ?? options.defaultStartNum;
 		const origStartNum = readIntAttribute(container, options.origNumDataAttribute);
 		const hiddenNumLinesCount = readIntAttribute(container, options.hiddenNumCountDataAttribute, true);
-		const skip = readIntAttribute(container, options.skipDataAttribute) ?? 0;
+		const addNum = readIntAttribute(container, options.addNumDataAttribute) ?? 0;
 
 		let insertedLinesCount = readIntAttribute(container, options.insertedLineCountDataAttribute, true);
 		let deletedLinesCount = readIntAttribute(container, options.deletedLineCountDataAttribute, true);
@@ -557,8 +557,8 @@ const makeLinenum = (() => {
 
 		const currentScanLine: ScanLine = {
 			children: [],
-			num: startNum + skip,
-			origNum: (origStartNum ?? startNum) + skip,
+			num: startNum + addNum,
+			origNum: (origStartNum ?? startNum) + addNum,
 			hiddenNumLinesCount: hiddenNumLinesCount ?? 0,
 			diffLinesStack: diffLinesStack,
 		};
