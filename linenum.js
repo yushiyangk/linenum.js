@@ -13,14 +13,14 @@ const makeLinenum = (() => {
         insertedLineClassName: "ln-ins",
         deletedLineClassName: "ln-del",
         startNumDataAttribute: "data-ln-start",
-        hiddenNumLinesCountDataAttribute: "data-ln-hide",
+        hiddenNumCountDataAttribute: "data-ln-hide",
         skipDataAttribute: "data-ln-skip",
         diffContainerClassName: "ln-diff",
         origNumClassName: "ln-orig",
         diffSignClassName: "ln-sign",
         origNumDataAttribute: "data-ln-orig",
-        insertedLinesCountDataAttribute: "data-ln-ins",
-        deletedLinesCountDataAttribute: "data-ln-del",
+        insertedLineCountDataAttribute: "data-ln-ins",
+        deletedLineCountDataAttribute: "data-ln-del",
     };
     function validateMakeLinenumOptions(options) {
         if (!Number.isInteger(options.defaultStartNum)) {
@@ -315,12 +315,12 @@ const makeLinenum = (() => {
         });
         const startNum = readIntAttribute(element, options.startNumDataAttribute);
         const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
-        const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumLinesCountDataAttribute, true);
+        const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumCountDataAttribute, true);
         const skip = readIntAttribute(element, options.skipDataAttribute);
-        let insertedLinesCount = readIntAttribute(element, options.insertedLinesCountDataAttribute, true);
-        let deletedLinesCount = readIntAttribute(element, options.deletedLinesCountDataAttribute, true);
+        let insertedLinesCount = readIntAttribute(element, options.insertedLineCountDataAttribute, true);
+        let deletedLinesCount = readIntAttribute(element, options.deletedLineCountDataAttribute, true);
         if (insertedLinesCount !== null && deletedLinesCount !== null) {
-            console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} and ${options.deletedLinesCountDataAttribute} attributes cannot both be set, ignoring both:`, element);
+            console.warn(`linenum.js:traverseElement: ${options.insertedLineCountDataAttribute} and ${options.deletedLineCountDataAttribute} attributes cannot both be set, ignoring both:`, element);
             insertedLinesCount = null;
             deletedLinesCount = null;
         }
@@ -334,8 +334,8 @@ const makeLinenum = (() => {
             currentScanLine.hiddenNumLinesCount = hiddenNumLinesCount;
         }
         const attributeNameOfDiffLineType = {
-            [DiffLineType.Insertion]: options.insertedLinesCountDataAttribute,
-            [DiffLineType.Deletion]: options.deletedLinesCountDataAttribute,
+            [DiffLineType.Insertion]: options.insertedLineCountDataAttribute,
+            [DiffLineType.Deletion]: options.deletedLineCountDataAttribute,
         };
         if (insertedLinesCount !== null) {
             updateDiffLinesStack(element, insertedLinesCount, DiffLineType.Insertion, currentScanLine, attributeNameOfDiffLineType);
@@ -416,12 +416,12 @@ const makeLinenum = (() => {
         const lineWrapperStack = [];
         const startNum = (_a = readIntAttribute(container, options.startNumDataAttribute)) !== null && _a !== void 0 ? _a : options.defaultStartNum;
         const origStartNum = readIntAttribute(container, options.origNumDataAttribute);
-        const hiddenNumLinesCount = readIntAttribute(container, options.hiddenNumLinesCountDataAttribute, true);
+        const hiddenNumLinesCount = readIntAttribute(container, options.hiddenNumCountDataAttribute, true);
         const skip = (_b = readIntAttribute(container, options.skipDataAttribute)) !== null && _b !== void 0 ? _b : 0;
-        let insertedLinesCount = readIntAttribute(container, options.insertedLinesCountDataAttribute, true);
-        let deletedLinesCount = readIntAttribute(container, options.deletedLinesCountDataAttribute, true);
+        let insertedLinesCount = readIntAttribute(container, options.insertedLineCountDataAttribute, true);
+        let deletedLinesCount = readIntAttribute(container, options.deletedLineCountDataAttribute, true);
         if (insertedLinesCount !== null && deletedLinesCount !== null) {
-            console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} and ${options.deletedLinesCountDataAttribute} attributes cannot both be set, ignoring both:`, container);
+            console.warn(`linenum.js:traverseElement: ${options.insertedLineCountDataAttribute} and ${options.deletedLineCountDataAttribute} attributes cannot both be set, ignoring both:`, container);
             insertedLinesCount = null;
             deletedLinesCount = null;
         }

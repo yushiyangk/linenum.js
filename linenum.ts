@@ -16,7 +16,7 @@ const makeLinenum = (() => {
 		insertedLineClassName: string,
 		deletedLineClassName: string,
 		startNumDataAttribute: string,
-		hiddenNumLinesCountDataAttribute: string,  // this data attribute hides line numbers for the given number of lines, including the current one
+		hiddenNumCountDataAttribute: string,  // this data attribute hides line numbers for the given number of lines, including the current one
 		skipDataAttribute: string,  // this data attribute increments the line number by the given value
 
 		// for diffs
@@ -25,8 +25,8 @@ const makeLinenum = (() => {
 		diffSignClassName: string,
 		origNumDataAttribute: string,  // if this data attribute is not given, defaults to the same value as startNumDataAttribute
 		// these data attributes specifies the number of lines, including the current one, to be treated as a diff
-		insertedLinesCountDataAttribute: string,
-		deletedLinesCountDataAttribute: string,  // deleted lines do not count towards the main line numbering
+		insertedLineCountDataAttribute: string,
+		deletedLineCountDataAttribute: string,  // deleted lines do not count towards the main line numbering
 	}
 	const defaultMakeLinenumOptions: MakeLinenumOptions = {
 		defaultStartNum: 1,
@@ -36,14 +36,14 @@ const makeLinenum = (() => {
 		insertedLineClassName: "ln-ins",
 		deletedLineClassName: "ln-del",
 		startNumDataAttribute: "data-ln-start",
-		hiddenNumLinesCountDataAttribute: "data-ln-hide",
+		hiddenNumCountDataAttribute: "data-ln-hide",
 		skipDataAttribute: "data-ln-skip",
 		diffContainerClassName: "ln-diff",
 		origNumClassName: "ln-orig",
 		diffSignClassName: "ln-sign",
 		origNumDataAttribute: "data-ln-orig",
-		insertedLinesCountDataAttribute: "data-ln-ins",
-		deletedLinesCountDataAttribute: "data-ln-del",
+		insertedLineCountDataAttribute: "data-ln-ins",
+		deletedLineCountDataAttribute: "data-ln-del",
 	}
 	function validateMakeLinenumOptions(options: MakeLinenumOptions): boolean {
 		if (!Number.isInteger(options.defaultStartNum)) {
@@ -414,13 +414,13 @@ const makeLinenum = (() => {
 
 		const startNum = readIntAttribute(element, options.startNumDataAttribute);
 		const originalStartNum = readIntAttribute(element, options.origNumDataAttribute);
-		const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumLinesCountDataAttribute, true);
+		const hiddenNumLinesCount = readIntAttribute(element, options.hiddenNumCountDataAttribute, true);
 		const skip = readIntAttribute(element, options.skipDataAttribute);
 
-		let insertedLinesCount = readIntAttribute(element, options.insertedLinesCountDataAttribute, true);
-		let deletedLinesCount = readIntAttribute(element, options.deletedLinesCountDataAttribute, true);
+		let insertedLinesCount = readIntAttribute(element, options.insertedLineCountDataAttribute, true);
+		let deletedLinesCount = readIntAttribute(element, options.deletedLineCountDataAttribute, true);
 		if (insertedLinesCount !== null && deletedLinesCount !== null) {
-			console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} and ${options.deletedLinesCountDataAttribute} attributes cannot both be set, ignoring both:`, element);
+			console.warn(`linenum.js:traverseElement: ${options.insertedLineCountDataAttribute} and ${options.deletedLineCountDataAttribute} attributes cannot both be set, ignoring both:`, element);
 			insertedLinesCount = null;
 			deletedLinesCount = null;
 		}
@@ -436,8 +436,8 @@ const makeLinenum = (() => {
 		}
 
 		const attributeNameOfDiffLineType = {
-			[DiffLineType.Insertion]: options.insertedLinesCountDataAttribute,
-			[DiffLineType.Deletion]: options.deletedLinesCountDataAttribute,
+			[DiffLineType.Insertion]: options.insertedLineCountDataAttribute,
+			[DiffLineType.Deletion]: options.deletedLineCountDataAttribute,
 		}
 		if (insertedLinesCount !== null) {
 			updateDiffLinesStack(element, insertedLinesCount, DiffLineType.Insertion, currentScanLine, attributeNameOfDiffLineType);
@@ -532,13 +532,13 @@ const makeLinenum = (() => {
 		const lineWrapperStack: Wrapper[] = [];
 		const startNum = readIntAttribute(container, options.startNumDataAttribute) ?? options.defaultStartNum;
 		const origStartNum = readIntAttribute(container, options.origNumDataAttribute);
-		const hiddenNumLinesCount = readIntAttribute(container, options.hiddenNumLinesCountDataAttribute, true);
+		const hiddenNumLinesCount = readIntAttribute(container, options.hiddenNumCountDataAttribute, true);
 		const skip = readIntAttribute(container, options.skipDataAttribute) ?? 0;
 
-		let insertedLinesCount = readIntAttribute(container, options.insertedLinesCountDataAttribute, true);
-		let deletedLinesCount = readIntAttribute(container, options.deletedLinesCountDataAttribute, true);
+		let insertedLinesCount = readIntAttribute(container, options.insertedLineCountDataAttribute, true);
+		let deletedLinesCount = readIntAttribute(container, options.deletedLineCountDataAttribute, true);
 		if (insertedLinesCount !== null && deletedLinesCount !== null) {
-			console.warn(`linenum.js:traverseElement: ${options.insertedLinesCountDataAttribute} and ${options.deletedLinesCountDataAttribute} attributes cannot both be set, ignoring both:`, container);
+			console.warn(`linenum.js:traverseElement: ${options.insertedLineCountDataAttribute} and ${options.deletedLineCountDataAttribute} attributes cannot both be set, ignoring both:`, container);
 			insertedLinesCount = null;
 			deletedLinesCount = null;
 		}
